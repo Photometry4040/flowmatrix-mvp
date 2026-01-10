@@ -16,7 +16,10 @@ import WorkflowNode from "@/components/WorkflowNode";
 import NodeDetailPanel from "@/components/NodeDetailPanel";
 import MatrixView from "@/components/MatrixView";
 import DraggableNodeType from "@/components/DraggableNodeType";
-import type { ActivityNode, Department, NodeType, ProjectStage } from "@/types/workflow";
+import ProjectManager from "@/components/ProjectManager";
+import type { ActivityNode, Department, NodeType, ProjectStage, WorkflowProject, WorkflowRelationship } from "@/types/workflow";
+import { updateWorkflowStatus, completeNode, startNode, calculateWorkflowProgress } from "@/lib/workflowEngine";
+import { saveProject, loadCurrentProject, createNewProject, autoSaveProject, getProjectsList } from "@/lib/workflowStorage";
 import {
   Background,
   BackgroundVariant,
@@ -47,7 +50,7 @@ import {
   LayoutGrid,
   Network,
 } from "lucide-react";
-import { useCallback, useState, useRef, useMemo } from "react";
+import { useCallback, useState, useRef, useMemo, useEffect } from "react";
 
 const nodeTypes = {
   workflow: WorkflowNode,
@@ -203,6 +206,77 @@ export default function WorkflowCanvas() {
   const [viewMode, setViewMode] = useState<"canvas" | "matrix">("canvas");
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [currentProject, setCurrentProject] = useState<WorkflowProject | null>(null);
+  const [workflowProgress, setWorkflowProgress] = useState<number>(0);
+
+  // 프로젝트 로드 또는 생성
+  useEffect(() => {
+    let project = loadCurrentProject();
+    if (!project) {
+      project = createNewProject("새 워크플로우", "FlowMatrix로 생성된 워크플로우입니다.");
+    }
+    setCurrentProject(project);
+    
+    // 저장된 노드와 엣지 복원
+    if (project.nodes.length > 0) {
+      const restoredNodes = project.nodes.map(node => ({
+        id: node.id,
+        type: "workflow" as const,
+        position: node.position,
+        data: node
+      }));
+      setNodes(restoredNodes);
+    }
+    
+    if (project.edges.length > 0) {
+      const restoredEdges = project.edges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        animated: true,
+        style: { stroke: "oklch(0.65 0.25 230)", strokeWidth: 2 }
+      }));
+      setEdges(restoredEdges);
+    }
+  }, []);
+
+  // 자동 저장
+  useEffect(() => {
+    if (!currentProject) return;
+    
+    const activityNodes = nodes.map(n => n.data);
+    const relationships: WorkflowRelationship[] = edges.map(e => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      relation_type: "REQUIRES",
+      properties: {}
+    }));
+    
+    autoSaveProject(currentProject.id, activityNodes, relationships);
+  }, [nodes, edges, currentProject]);
+
+  // 워크플로우 상태 업데이트
+  useEffect(() => {
+    const activityNodes = nodes.map(n => n.data);
+    const relationships: WorkflowRelationship[] = edges.map(e => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      relation_type: "REQUIRES",
+      properties: {}
+    }));
+    
+    const updatedNodes = updateWorkflowStatus(activityNodes, relationships);
+    const progress = calculateWorkflowProgress(updatedNodes);
+    setWorkflowProgress(progress);
+    
+    // 노드 상태 반영
+    setNodes(prevNodes => prevNodes.map(n => {
+      const updated = updatedNodes.find(un => un.id === n.id);
+      return updated ? { ...n, data: updated } : n;
+    }));
+  }, [edges]); // edges가 변경될 때만 재계산
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -347,6 +421,12 @@ export default function WorkflowCanvas() {
 
           <Card className="px-3 py-2 flex items-center gap-4 bg-card/50">
             <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              <span className="text-sm font-mono text-foreground">{workflowProgress}%</span>
+              <span className="text-xs text-muted-foreground">완료</span>
+            </div>
+            <Separator orientation="vertical" className="h-4" />
+            <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-destructive" />
               <span className="text-sm font-mono text-foreground">{bottleneckCount}</span>
               <span className="text-xs text-muted-foreground">병목</span>
@@ -359,11 +439,53 @@ export default function WorkflowCanvas() {
             </div>
           </Card>
 
+          <ProjectManager onProjectLoad={(project) => {
+            setCurrentProject(project);
+            
+            // 프로젝트 노드와 엣지 복원
+            const restoredNodes = project.nodes.map(node => ({
+              id: node.id,
+              type: "workflow" as const,
+              position: node.position,
+              data: node
+            }));
+            setNodes(restoredNodes);
+            
+            const restoredEdges = project.edges.map(edge => ({
+              id: edge.id,
+              source: edge.source,
+              target: edge.target,
+              animated: true,
+              style: { stroke: "oklch(0.65 0.25 230)", strokeWidth: 2 }
+            }));
+            setEdges(restoredEdges);
+          }} />
           <Button variant="outline" size="sm" className="gap-2">
             <Users className="w-4 h-4" />
             협업
           </Button>
-          <Button size="sm" className="gap-2">
+          <Button 
+            size="sm" 
+            className="gap-2"
+            onClick={() => {
+              if (currentProject) {
+                const activityNodes = nodes.map(n => n.data);
+                const relationships: WorkflowRelationship[] = edges.map(e => ({
+                  id: e.id,
+                  source: e.source,
+                  target: e.target,
+                  relation_type: "REQUIRES",
+                  properties: {}
+                }));
+                saveProject({
+                  ...currentProject,
+                  nodes: activityNodes,
+                  edges: relationships
+                });
+                alert(`✅ ${currentProject.name} 저장 완료!`);
+              }
+            }}
+          >
             <Save className="w-4 h-4" />
             저장
           </Button>

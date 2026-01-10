@@ -4,7 +4,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { ActivityNode, BrainUsage } from "@/types/workflow";
+import type { ActivityNode, BrainUsage, NodeStatus } from "@/types/workflow";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { 
   Zap, 
@@ -47,6 +47,25 @@ function WorkflowNode({ data }: NodeProps<WorkflowNodeData>) {
   const colorClass = nodeTypeColors[data.type];
   const isBottleneck = data.isBottleneck || false;
   const aiScore = data.aiScore || 0;
+  const status = data.status || "PENDING";
+  const progress = data.progress || 0;
+
+  // 상태별 색상
+  const statusColors: Record<NodeStatus, string> = {
+    PENDING: "bg-muted/20 text-muted-foreground border-muted",
+    READY: "bg-success/20 text-success border-success",
+    IN_PROGRESS: "bg-primary/20 text-primary border-primary",
+    COMPLETED: "bg-muted/50 text-muted-foreground border-muted",
+    BLOCKED: "bg-destructive/20 text-destructive border-destructive"
+  };
+
+  const statusLabels: Record<NodeStatus, string> = {
+    PENDING: "대기",
+    READY: "준비",
+    IN_PROGRESS: "진행",
+    COMPLETED: "완료",
+    BLOCKED: "차단"
+  };
   
   return (
     <div className={`${isBottleneck ? "pulse-bottleneck" : ""}`}>
@@ -74,12 +93,21 @@ function WorkflowNode({ data }: NodeProps<WorkflowNodeData>) {
               </CardTitle>
             </div>
             
-            {aiScore > 70 && (
-              <Badge variant="outline" className="bg-success/10 text-success border-success gap-1 px-1.5 py-0.5">
-                <Sparkles className="w-3 h-3" />
-                <span className="text-xs font-mono">{aiScore}%</span>
+            <div className="flex items-center gap-1">
+              <Badge 
+                variant="outline" 
+                className={`${statusColors[status]} text-xs px-1.5 py-0.5`}
+              >
+                {statusLabels[status]}
               </Badge>
-            )}
+              
+              {aiScore > 70 && (
+                <Badge variant="outline" className="bg-success/10 text-success border-success gap-1 px-1.5 py-0.5">
+                  <Sparkles className="w-3 h-3" />
+                  <span className="text-xs font-mono">{aiScore}%</span>
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
         
@@ -122,6 +150,16 @@ function WorkflowNode({ data }: NodeProps<WorkflowNodeData>) {
             <div className="text-xs text-primary flex items-center gap-1 pt-1">
               <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
               <span>반복 작업</span>
+            </div>
+          )}
+          
+          {/* 진행률 바 */}
+          {status === "IN_PROGRESS" && progress > 0 && (
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-2">
+              <div 
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
             </div>
           )}
         </CardContent>

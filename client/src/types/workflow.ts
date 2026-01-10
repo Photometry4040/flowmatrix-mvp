@@ -20,6 +20,8 @@ export type ProjectStage =
 
 export type BrainUsage = "LOW" | "MEDIUM" | "HIGH";
 
+export type NodeStatus = "PENDING" | "READY" | "IN_PROGRESS" | "COMPLETED" | "BLOCKED";
+
 export interface ActivityNode {
   id: string;
   type: NodeType;
@@ -35,6 +37,11 @@ export interface ActivityNode {
   };
   ontology_tags: string[];
   position: { x: number; y: number };
+  // 실행 상태 관련
+  status?: NodeStatus;
+  completedAt?: string;
+  startedAt?: string;
+  progress?: number; // 0-100
 }
 
 export type RelationType = "TRIGGER" | "BLOCKS" | "REQUIRES" | "FEEDBACK_TO";
@@ -62,4 +69,15 @@ export interface BottleneckAnalysis {
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   lead_time: string;
   impact_score: number;
+}
+
+export interface WorkflowProject {
+  id: string;
+  name: string;
+  description?: string;
+  nodes: ActivityNode[];
+  edges: WorkflowRelationship[];
+  createdAt: string;
+  updatedAt: string;
+  version: number;
 }
