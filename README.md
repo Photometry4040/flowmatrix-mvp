@@ -5,6 +5,7 @@
 ## 📋 목차
 
 1. [주요 기능](#주요-기능)
+3. [테스트](#테스트)
 2. [시스템 아키텍처](#시스템-아키텍처)
 3. [시작하기](#시작하기)
 4. [사용 방법](#사용-방법)
@@ -213,6 +214,28 @@ graph TD
     style WorkflowCanvas fill:#2a2d3a,stroke:#00d4ff,color:#fff
     style Canvas fill:#0a0a0a,stroke:#00d4ff,color:#fff
 ```
+
+---
+
+## 🧪 테스트
+
+FlowMatrix는 포괄적인 테스트 전략을 사용합니다:
+
+```bash
+# 단위 테스트 (컴포넌트)
+pnpm test
+
+# E2E 테스트 (사용자 플로우)
+pnpm test:e2e
+
+# 커버리지 리포트
+pnpm test:coverage
+
+# Storybook (컴포넌트 카탈로그)
+pnpm storybook
+```
+
+자세한 내용은 [TESTING.md](./TESTING.md)를 참고하세요.
 
 ---
 
