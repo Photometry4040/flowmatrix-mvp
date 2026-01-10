@@ -1,20 +1,21 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@xyflow/react/dist/style.css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* Design Philosophy: Swiss Modernism meets Digital Research Paper
-   - Typography-driven hierarchy with IBM Plex Sans + Inter
-   - Grid-based precision with strategic whitespace
-   - Functional color: Deep Blue + Amber accents
-   - Data visualization first approach
+/* Design Philosophy: Neo-Brutalism meets Data Visualization Dashboard
+   - Bold geometric structure with strong borders
+   - High contrast: dark background + neon accents
+   - Functional maximalism: every element has clear purpose
+   - Grid-based canvas with visible structure
 */
 
 @theme inline {
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -48,59 +49,63 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   
-  --font-display: "IBM Plex Sans", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 
 :root {
-  /* Deep Blue primary for trust and professionalism */
-  --primary: oklch(0.35 0.15 260);
-  --primary-foreground: oklch(0.98 0.01 260);
+  /* Cyber Blue primary for nodes and connections */
+  --primary: oklch(0.65 0.25 230);
+  --primary-foreground: oklch(0.05 0.01 230);
   
-  /* Amber accent for highlighting key information */
-  --accent: oklch(0.72 0.15 70);
-  --accent-foreground: oklch(0.15 0.02 70);
+  /* Neon Pink accent for bottlenecks and warnings */
+  --accent: oklch(0.60 0.30 350);
+  --accent-foreground: oklch(0.98 0.01 350);
   
-  /* Slate-based neutrals for professional feel */
-  --background: oklch(0.99 0.002 260);
-  --foreground: oklch(0.15 0.01 260);
+  /* Dark base for long working sessions */
+  --background: oklch(0.08 0.01 260);
+  --foreground: oklch(0.95 0.01 260);
   
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 260);
+  --card: oklch(0.12 0.01 260);
+  --card-foreground: oklch(0.95 0.01 260);
   
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 260);
+  --popover: oklch(0.12 0.01 260);
+  --popover-foreground: oklch(0.95 0.01 260);
   
-  --secondary: oklch(0.96 0.005 260);
-  --secondary-foreground: oklch(0.25 0.01 260);
+  --secondary: oklch(0.18 0.01 260);
+  --secondary-foreground: oklch(0.85 0.01 260);
   
-  --muted: oklch(0.94 0.005 260);
-  --muted-foreground: oklch(0.45 0.01 260);
+  --muted: oklch(0.22 0.01 260);
+  --muted-foreground: oklch(0.55 0.01 260);
   
-  --destructive: oklch(0.55 0.22 25);
+  --destructive: oklch(0.55 0.25 25);
   --destructive-foreground: oklch(0.98 0.01 25);
   
-  --border: oklch(0.88 0.005 260);
-  --input: oklch(0.88 0.005 260);
-  --ring: oklch(0.35 0.15 260);
+  --border: oklch(0.25 0.01 260);
+  --input: oklch(0.18 0.01 260);
+  --ring: oklch(0.65 0.25 230);
   
-  --sidebar: oklch(0.98 0.002 260);
-  --sidebar-foreground: oklch(0.15 0.01 260);
-  --sidebar-primary: oklch(0.35 0.15 260);
-  --sidebar-primary-foreground: oklch(0.98 0.01 260);
-  --sidebar-accent: oklch(0.96 0.005 260);
-  --sidebar-accent-foreground: oklch(0.25 0.01 260);
-  --sidebar-border: oklch(0.88 0.005 260);
-  --sidebar-ring: oklch(0.35 0.15 260);
+  --sidebar: oklch(0.10 0.01 260);
+  --sidebar-foreground: oklch(0.95 0.01 260);
+  --sidebar-primary: oklch(0.65 0.25 230);
+  --sidebar-primary-foreground: oklch(0.05 0.01 230);
+  --sidebar-accent: oklch(0.18 0.01 260);
+  --sidebar-accent-foreground: oklch(0.85 0.01 260);
+  --sidebar-border: oklch(0.25 0.01 260);
+  --sidebar-ring: oklch(0.65 0.25 230);
   
-  --chart-1: oklch(0.55 0.15 260);
-  --chart-2: oklch(0.45 0.15 260);
-  --chart-3: oklch(0.65 0.15 260);
-  --chart-4: oklch(0.72 0.15 70);
-  --chart-5: oklch(0.35 0.15 260);
+  /* Lime Green for AI-replaceable nodes */
+  --success: oklch(0.75 0.25 130);
   
-  --radius: 0.375rem;
+  /* Chart colors for data visualization */
+  --chart-1: oklch(0.65 0.25 230);
+  --chart-2: oklch(0.60 0.30 350);
+  --chart-3: oklch(0.75 0.25 130);
+  --chart-4: oklch(0.70 0.20 280);
+  --chart-5: oklch(0.65 0.20 50);
+  
+  --radius: 0.25rem;
 }
 
 @layer base {
@@ -111,13 +116,14 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
-    line-height: 1.6;
+    line-height: 1.5;
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
   }
   
   code, pre {
@@ -166,19 +172,43 @@
     }
   }
   
-  /* Section number badge styling */
-  .section-badge {
-    @apply inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary text-primary-foreground font-display font-bold text-xl;
+  /* Neo-Brutalist card with strong borders */
+  .brutal-card {
+    @apply border-2 border-primary bg-card rounded-sm shadow-[4px_4px_0px_0px_rgba(0,212,255,0.3)];
   }
   
-  /* Highlighted quote card */
-  .insight-card {
-    @apply border-l-4 border-accent bg-accent/5 p-6 rounded-r-lg;
+  /* Neon glow effect for important elements */
+  .neon-glow {
+    box-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
   }
   
-  /* Interactive table row */
-  .table-row-interactive {
-    @apply transition-all duration-200 hover:bg-muted/50 hover:shadow-sm;
+  /* Pulsing animation for bottleneck nodes */
+  .pulse-bottleneck {
+    animation: pulse-scale 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-scale {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
+  }
+  
+  /* Grid background for canvas */
+  .grid-background {
+    background-image: 
+      linear-gradient(to right, oklch(0.15 0.01 260) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(0.15 0.01 260) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  
+  /* Floating toolbar style */
+  .floating-toolbar {
+    @apply bg-card/90 backdrop-blur-md border-2 border-border rounded-sm shadow-lg;
   }
 }
 
@@ -189,18 +219,51 @@ html {
 
 /* Custom scrollbar for webkit browsers */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: oklch(0.96 0.005 260);
+  background: oklch(0.12 0.01 260);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.7 0.01 260);
-  border-radius: 5px;
+  background: oklch(0.25 0.01 260);
+  border: 2px solid oklch(0.12 0.01 260);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.5 0.01 260);
+  background: oklch(0.35 0.05 230);
+}
+
+/* React Flow custom styles */
+.react-flow__node {
+  @apply font-body;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__handle {
+  @apply w-3 h-3 border-2 border-primary bg-background;
+}
+
+.react-flow__handle:hover {
+  @apply bg-primary;
+}
+
+/* Connection line animation */
+@keyframes flow-animation {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: flow-animation 0.5s linear infinite;
 }

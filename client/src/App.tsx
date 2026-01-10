@@ -5,12 +5,14 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import WorkflowCanvas from "./pages/WorkflowCanvas";
 
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/"} component={WorkflowCanvas} />
+      <Route path={"/report"} component={Home} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -18,13 +20,13 @@ function Router() {
   );
 }
 
-// Design Philosophy: Swiss Modernism meets Digital Research Paper
-// Light theme for professional document presentation
+// Design Philosophy: Neo-Brutalism meets Data Visualization Dashboard
+// Dark theme for long working sessions with neon accents
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
+      <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
           <Router />
