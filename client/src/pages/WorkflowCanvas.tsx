@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import WorkflowNode from "@/components/WorkflowNode";
 import NodeDetailPanel from "@/components/NodeDetailPanel";
+import MatrixView from "@/components/MatrixView";
+import DraggableNodeType from "@/components/DraggableNodeType";
 import type { ActivityNode, Department, NodeType, ProjectStage } from "@/types/workflow";
 import {
   Background,
@@ -29,6 +31,9 @@ import {
   type Node,
 } from "@xyflow/react";
 import {
+  AlertTriangle,
+  Brain,
+  Clock,
   FileText,
   GitBranch,
   Layers,
@@ -39,8 +44,10 @@ import {
   TrendingUp,
   Users,
   Zap,
+  LayoutGrid,
+  Network,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef, useMemo } from "react";
 
 const nodeTypes = {
   workflow: WorkflowNode,
@@ -193,6 +200,9 @@ export default function WorkflowCanvas() {
   const [selectedDepartment, setSelectedDepartment] = useState<Department>("SW_TEAM");
   const [selectedStage, setSelectedStage] = useState<ProjectStage>("DEVELOPMENT");
   const [selectedNode, setSelectedNode] = useState<ActivityNode | null>(null);
+  const [viewMode, setViewMode] = useState<"canvas" | "matrix">("canvas");
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -233,6 +243,15 @@ export default function WorkflowCanvas() {
   const bottleneckCount = nodes.filter((n) => n.data.isBottleneck).length;
   const aiReplaceableCount = nodes.filter((n) => (n.data.aiScore || 0) > 70).length;
 
+  // Collect all unique tags from all nodes
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    nodes.forEach((node) => {
+      node.data.ontology_tags.forEach((tag) => tagSet.add(tag));
+    });
+    return Array.from(tagSet);
+  }, [nodes]);
+
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node<ActivityNode>) => {
     setSelectedNode(node.data);
   }, []);
@@ -248,6 +267,49 @@ export default function WorkflowCanvas() {
     setSelectedNode(updatedNode);
   }, [setNodes]);
 
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const type = event.dataTransfer.getData("application/reactflow") as NodeType;
+      if (!type || !reactFlowInstance) return;
+
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      const newNode: Node<ActivityNode> = {
+        id: `node_${Date.now()}`,
+        type: "workflow",
+        position,
+        data: {
+          id: `node_${Date.now()}`,
+          type,
+          label: "새 작업",
+          stage: selectedStage,
+          department: selectedDepartment,
+          attributes: {
+            tool: [],
+            avg_time: "30m",
+            is_repetitive: false,
+            brain_usage: "MEDIUM",
+          },
+          ontology_tags: [],
+          position,
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance, selectedDepartment, selectedStage, setNodes]
+  );
+
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
       {/* Top Toolbar */}
@@ -262,6 +324,27 @@ export default function WorkflowCanvas() {
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 brutal-card px-2 py-1 bg-card/50">
+            <Button
+              variant={viewMode === "canvas" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("canvas")}
+              className="gap-2 h-8"
+            >
+              <Network className="w-4 h-4" />
+              캔버스
+            </Button>
+            <Button
+              variant={viewMode === "matrix" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("matrix")}
+              className="gap-2 h-8"
+            >
+              <LayoutGrid className="w-4 h-4" />
+              매트릭스
+            </Button>
+          </div>
+
           <Card className="px-3 py-2 flex items-center gap-4 bg-card/50">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-destructive" />
@@ -291,6 +374,38 @@ export default function WorkflowCanvas() {
       <div className="absolute left-4 top-28 z-10 floating-toolbar p-4 w-64 space-y-4">
         <div>
           <h3 className="text-sm font-display font-bold mb-3 text-foreground">노드 추가</h3>
+          <p className="text-xs text-muted-foreground mb-3">드래그하여 캔버스에 추가</p>
+          
+          <div className="space-y-2 mb-4">
+            <DraggableNodeType
+              type="TRIGGER"
+              label="Trigger (시작)"
+              icon={Play}
+              colorClass="border-success text-success"
+            />
+            <DraggableNodeType
+              type="ACTION"
+              label="Action (행동)"
+              icon={Zap}
+              colorClass="border-primary text-primary"
+            />
+            <DraggableNodeType
+              type="DECISION"
+              label="Decision (판단)"
+              icon={GitBranch}
+              colorClass="border-accent text-accent"
+            />
+            <DraggableNodeType
+              type="ARTIFACT"
+              label="Artifact (산출물)"
+              icon={FileText}
+              colorClass="border-chart-4 text-chart-4"
+            />
+          </div>
+
+          <Separator className="my-4" />
+
+          <h3 className="text-sm font-display font-bold mb-3 text-foreground">또는 설정 후 추가</h3>
           
           <div className="space-y-3">
             <div>
@@ -407,25 +522,33 @@ export default function WorkflowCanvas() {
         node={selectedNode}
         onClose={() => setSelectedNode(null)}
         onUpdate={handleNodeUpdate}
+        allTags={allTags}
       />
 
-      {/* Main Canvas */}
-      <div className="flex-1 grid-background">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          nodeTypes={nodeTypes}
-          fitView
-          className="bg-transparent"
-          defaultEdgeOptions={{
-            animated: true,
-            style: { stroke: "oklch(0.65 0.25 230)", strokeWidth: 2 },
-          }}
-        >
+      {/* Main Content Area */}
+      <div 
+        ref={reactFlowWrapper}
+        className="flex-1 grid-background"
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+      >
+        {viewMode === "canvas" ? (
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onInit={setReactFlowInstance}
+            nodeTypes={nodeTypes}
+            fitView
+            className="bg-transparent"
+            defaultEdgeOptions={{
+              animated: true,
+              style: { stroke: "oklch(0.65 0.25 230)", strokeWidth: 2 },
+            }}
+          >
           <Background 
             variant={BackgroundVariant.Dots} 
             gap={40} 
@@ -445,7 +568,13 @@ export default function WorkflowCanvas() {
             }}
             maskColor="oklch(0.08 0.01 260 / 0.8)"
           />
-        </ReactFlow>
+          </ReactFlow>
+        ) : (
+          <MatrixView 
+            nodes={nodes.map(n => n.data)}
+            onNodeClick={(node) => setSelectedNode(node)}
+          />
+        )}
       </div>
     </div>
   );

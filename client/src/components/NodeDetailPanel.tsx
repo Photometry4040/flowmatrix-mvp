@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import TagAutocomplete from "@/components/TagAutocomplete";
 import type { ActivityNode } from "@/types/workflow";
 import {
   AlertTriangle,
@@ -24,9 +25,10 @@ interface NodeDetailPanelProps {
   node: ActivityNode | null;
   onClose: () => void;
   onUpdate: (node: ActivityNode) => void;
+  allTags: string[];
 }
 
-export default function NodeDetailPanel({ node, onClose, onUpdate }: NodeDetailPanelProps) {
+export default function NodeDetailPanel({ node, onClose, onUpdate, allTags }: NodeDetailPanelProps) {
   if (!node) return null;
 
   const aiScore = (node as any).aiScore || 0;
@@ -158,17 +160,11 @@ export default function NodeDetailPanel({ node, onClose, onUpdate }: NodeDetailP
           {/* Tags */}
           <div className="space-y-3">
             <h4 className="font-display font-semibold text-sm">온톨로지 태그</h4>
-            <div className="flex flex-wrap gap-2">
-              {node.ontology_tags.length > 0 ? (
-                node.ontology_tags.map((tag, idx) => (
-                  <Badge key={idx} variant="outline" className="font-mono text-primary border-primary">
-                    {tag}
-                  </Badge>
-                ))
-              ) : (
-                <span className="text-sm text-muted-foreground">등록된 태그 없음</span>
-              )}
-            </div>
+            <TagAutocomplete
+              selectedTags={node.ontology_tags}
+              onTagsChange={(tags) => onUpdate({ ...node, ontology_tags: tags })}
+              allTags={allTags}
+            />
           </div>
 
           <Separator />
