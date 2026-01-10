@@ -17,7 +17,7 @@ import NodeDetailPanel from "@/components/NodeDetailPanel";
 import MatrixView from "@/components/MatrixView";
 import DraggableNodeType from "@/components/DraggableNodeType";
 import ProjectManager from "@/components/ProjectManager";
-import type { ActivityNode, Department, NodeType, ProjectStage, WorkflowProject, WorkflowRelationship } from "@/types/workflow";
+import type { ActivityNode, Department, NodeType, ProjectStage, WorkflowProject, WorkflowRelationship, NodeStatus } from "@/types/workflow";
 import { updateWorkflowStatus, completeNode, startNode, calculateWorkflowProgress } from "@/lib/workflowEngine";
 import { saveProject, loadCurrentProject, createNewProject, autoSaveProject, getProjectsList } from "@/lib/workflowStorage";
 import {
@@ -341,6 +341,145 @@ export default function WorkflowCanvas() {
     setSelectedNode(updatedNode);
   }, [setNodes]);
 
+  // 노드 삭제 핸들러
+  const handleNodesDelete = useCallback((nodesToDelete: Node<ActivityNode>[]) => {
+    const nodeIds = nodesToDelete.map(n => n.id);
+    
+    // 선택된 노드가 삭제되면 패널 닫기
+    if (selectedNode && nodeIds.includes(selectedNode.id)) {
+      setSelectedNode(null);
+    }
+    
+    console.log(`❌ ${nodesToDelete.length}개 노드 삭제: ${nodeIds.join(", ")}`);
+  }, [selectedNode]);
+
+  // 엣지 삭제 핸들러
+  const handleEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
+    const edgeIds = edgesToDelete.map(e => e.id);
+    console.log(`❌ ${edgesToDelete.length}개 엣지 삭제: ${edgeIds.join(", ")}`);
+  }, []);
+
+  // Delete 키 핸들러
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Delete" || event.key === "Backspace") {
+      if (selectedNode) {
+        // 선택된 노드 삭제
+        setNodes((nds) => nds.filter(n => n.id !== selectedNode.id));
+        setEdges((eds) => eds.filter(e => 
+          e.source !== selectedNode.id && e.target !== selectedNode.id
+        ));
+        setSelectedNode(null);
+        console.log(`❌ 노드 삭제: ${selectedNode.label}`);
+      }
+    }
+  }, [selectedNode, setNodes, setEdges]);
+
+  // Delete 키 이벤트 리스너 등록
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
+  // 노드 액션 핸들러
+  const handleStartNode = useCallback((nodeId: string) => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                status: "IN_PROGRESS" as const,
+                progress: 0,
+              },
+            }
+          : n
+      )
+    );
+    console.log(`▶️ 작업 시작: ${nodeId}`);
+  }, [setNodes]);
+
+  const handleCompleteNode = useCallback((nodeId: string) => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                status: "COMPLETED" as const,
+                progress: 100,
+              },
+            }
+          : n
+      )
+    );
+    console.log(`✅ 작업 완료: ${nodeId}`);
+  }, [setNodes]);
+
+  const handleDuplicateNode = useCallback((node: ActivityNode) => {
+    const newId = `node_${Date.now()}`;
+    const newNode: Node<ActivityNode> = {
+      id: newId,
+      type: "workflow",
+      position: { x: node.position.x + 50, y: node.position.y + 50 },
+      data: {
+        ...node,
+        id: newId,
+        label: `${node.label} (복사)`,
+        position: { x: node.position.x + 50, y: node.position.y + 50 },
+      },
+    };
+    setNodes((nds) => [...nds, newNode]);
+    console.log(`📋 노드 복제: ${node.label}`);
+  }, [setNodes]);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    if (selectedNode?.id === nodeId) {
+      setSelectedNode(null);
+    }
+    console.log(`🗑️ 노드 삭제: ${nodeId}`);
+  }, [setNodes, setEdges, selectedNode]);
+
+  const handleChangeStatus = useCallback((nodeId: string, status: NodeStatus) => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                status,
+                progress: status === "COMPLETED" ? 100 : status === "IN_PROGRESS" ? 50 : 0,
+              },
+            }
+          : n
+      )
+    );
+    console.log(`🔄 상태 변경: ${nodeId} → ${status}`);
+  }, [setNodes]);
+
+  // 노드에 액션 핸들러 주입
+  const nodesWithHandlers = useMemo(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          onStartNode: handleStartNode,
+          onCompleteNode: handleCompleteNode,
+          onDuplicateNode: handleDuplicateNode,
+          onDeleteNode: handleDeleteNode,
+          onChangeStatus: handleChangeStatus,
+        },
+      })),
+    [nodes, handleStartNode, handleCompleteNode, handleDuplicateNode, handleDeleteNode, handleChangeStatus]
+  );
+
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
@@ -656,15 +795,18 @@ export default function WorkflowCanvas() {
       >
         {viewMode === "canvas" ? (
           <ReactFlow
-            nodes={nodes}
+            nodes={nodesWithHandlers}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
+            onNodesDelete={handleNodesDelete}
+            onEdgesDelete={handleEdgesDelete}
             onInit={setReactFlowInstance}
             nodeTypes={nodeTypes}
             fitView
+            deleteKeyCode="Delete"
             className="bg-transparent"
             defaultEdgeOptions={{
               animated: true,

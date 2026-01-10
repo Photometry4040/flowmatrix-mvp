@@ -16,10 +16,16 @@ import {
   Sparkles
 } from "lucide-react";
 import { memo } from "react";
+import NodeContextMenu from "@/components/NodeContextMenu";
 
 interface WorkflowNodeData extends ActivityNode {
   isBottleneck?: boolean;
   aiScore?: number;
+  onStartNode?: (nodeId: string) => void;
+  onCompleteNode?: (nodeId: string) => void;
+  onDuplicateNode?: (node: ActivityNode) => void;
+  onDeleteNode?: (nodeId: string) => void;
+  onChangeStatus?: (nodeId: string, status: NodeStatus) => void;
 }
 
 const nodeTypeIcons = {
@@ -67,8 +73,20 @@ function WorkflowNode({ data }: NodeProps<WorkflowNodeData>) {
     BLOCKED: "차단"
   };
   
+  const contextMenuHandlers = {
+    onStartNode: data.onStartNode || (() => {}),
+    onCompleteNode: data.onCompleteNode || (() => {}),
+    onDuplicateNode: data.onDuplicateNode || (() => {}),
+    onDeleteNode: data.onDeleteNode || (() => {}),
+    onChangeStatus: data.onChangeStatus || (() => {}),
+  };
+
   return (
-    <div className={`${isBottleneck ? "pulse-bottleneck" : ""}`}>
+    <NodeContextMenu
+      node={data}
+      {...contextMenuHandlers}
+    >
+      <div className={`${isBottleneck ? "pulse-bottleneck" : ""}`}>
       <Card 
         className={`
           brutal-card min-w-[280px] max-w-[320px]
@@ -170,7 +188,8 @@ function WorkflowNode({ data }: NodeProps<WorkflowNodeData>) {
           className="!bg-primary !border-primary"
         />
       </Card>
-    </div>
+      </div>
+    </NodeContextMenu>
   );
 }
 
