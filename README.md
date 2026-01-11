@@ -704,6 +704,94 @@ MIT License
 
 ---
 
+## 🚀 배포 (Netlify)
+
+FlowMatrix는 Netlify를 통해 쉽게 배포할 수 있습니다.
+
+### Netlify 배포 설정
+
+1. **Netlify 계정 연결**
+   - [Netlify](https://netlify.com)에 로그인
+   - "Add new site" → "Import an existing project" 선택
+   - GitHub 저장소 연결
+
+2. **빌드 설정** (자동 감지됨)
+   ```
+   Branch to deploy: main
+   Base directory: (비워둠)
+   Build command: pnpm install && pnpm build
+   Publish directory: dist/public
+   ```
+
+3. **환경 변수** (필요시)
+   - Netlify 대시보드 → Site settings → Environment variables
+   - 현재 프로젝트는 환경 변수 없이 작동합니다
+
+4. **배포**
+   - "Deploy site" 클릭
+   - 빌드 로그 확인
+   - 배포 완료 후 URL 확인 (예: `your-app-name.netlify.app`)
+
+### 자동 배포
+
+- `main` 브랜치에 push하면 자동으로 배포됩니다
+- PR 생성 시 Preview Deploy가 자동 생성됩니다
+- `netlify.toml` 파일에 배포 설정이 저장되어 있습니다
+
+### 커스텀 도메인 설정
+
+1. Netlify 대시보드 → Domain settings
+2. "Add custom domain" 클릭
+3. DNS 레코드 추가:
+   ```
+   Type: A
+   Name: @
+   Value: [Netlify IP]
+
+   Type: CNAME
+   Name: www
+   Value: [your-site].netlify.app
+   ```
+
+### 배포 확인
+
+배포 후 다음을 확인하세요:
+- ✅ 메인 페이지 로드
+- ✅ 노드 추가/편집/삭제
+- ✅ Canvas ↔ Matrix View 전환
+- ✅ LocalStorage 저장/불러오기
+- ✅ 모든 라우트 작동 (SPA routing)
+
+### 로컬 빌드 테스트
+
+```bash
+# 프로덕션 빌드
+pnpm build
+
+# 빌드 결과 확인
+ls dist/public
+
+# 로컬에서 프로덕션 빌드 미리보기
+pnpm preview
+```
+
+### 배포 문제 해결
+
+**빌드 실패 시:**
+- Netlify 빌드 로그 확인
+- Node 버전 확인 (`.nvmrc` 파일에 명시됨)
+- pnpm lockfile 커밋 확인
+
+**라우팅 404 에러 시:**
+- `_redirects` 파일 확인 (`client/public/_redirects`)
+- `netlify.toml`의 redirects 설정 확인
+
+**성능 최적화:**
+- Netlify Analytics 활성화
+- Asset Optimization 활성화 (이미지 압축, Brotli 압축)
+
+---
+
 ## 👥 기여하기
 
 이슈 및 풀 리퀘스트를 환영합니다!
