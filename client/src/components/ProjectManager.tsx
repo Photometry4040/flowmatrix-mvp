@@ -18,6 +18,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -43,6 +53,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { WorkflowProject } from "@/types/workflow";
+import { toast } from "sonner";
 
 interface ProjectManagerProps {
   onProjectLoad: (project: WorkflowProject) => void;
@@ -53,11 +64,13 @@ export default function ProjectManager({ onProjectLoad }: ProjectManagerProps) {
   const [projects, setProjects] = useState(getProjectsList());
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDesc, setNewProjectDesc] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null);
   const storage = getStorageUsage();
 
   const handleCreateProject = () => {
     if (!newProjectName.trim()) {
-      alert("프로젝트 이름을 입력하세요.");
+      toast.error("프로젝트 이름을 입력하세요.");
       return;
     }
 
@@ -79,9 +92,17 @@ export default function ProjectManager({ onProjectLoad }: ProjectManagerProps) {
   };
 
   const handleDeleteProject = (projectId: string, projectName: string) => {
-    if (confirm(`정말로 "${projectName}" 프로젝트를 삭제하시겠습니까?`)) {
-      deleteProject(projectId);
+    setProjectToDelete({ id: projectId, name: projectName });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (projectToDelete) {
+      deleteProject(projectToDelete.id);
       setProjects(getProjectsList());
+      toast.success(`"${projectToDelete.name}" 프로젝트를 삭제했습니다.`);
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
     }
   };
 
@@ -111,9 +132,9 @@ export default function ProjectManager({ onProjectLoad }: ProjectManagerProps) {
           const project = importProject(json);
           if (project) {
             setProjects(getProjectsList());
-            alert(`✅ "${project.name}" 프로젝트를 가져왔습니다.`);
+            toast.success(`"${project.name}" 프로젝트를 가져왔습니다.`);
           } else {
-            alert("❌ 프로젝트 가져오기 실패. 파일 형식을 확인하세요.");
+            toast.error("프로젝트 가져오기 실패. 파일 형식을 확인하세요.");
           }
         };
         reader.readAsText(file);
@@ -266,13 +287,33 @@ export default function ProjectManager({ onProjectLoad }: ProjectManagerProps) {
               <div
                 className="h-full bg-primary transition-all"
                 style={{
-                  width: `${(storage.used / storage.total) * 100}%`,
+                  width: `${storage.percentage}%`,
                 }}
               />
             </div>
           </Card>
         </div>
       </DialogContent>
+
+      {/* 삭제 확인 AlertDialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>프로젝트 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말로 "{projectToDelete?.name}" 프로젝트를 삭제하시겠습니까?
+              <br />
+              이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

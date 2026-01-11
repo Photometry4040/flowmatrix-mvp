@@ -52,19 +52,19 @@ describe('WorkflowNode', () => {
   });
 
   it('should show AI score badge when score > 70', () => {
-    const nodeWithAI = { ...mockNode, aiScore: 85 } as any;
+    const nodeWithAI = { ...mockNode, aiScore: 85 };
     renderWithProvider(<WorkflowNode data={nodeWithAI} />);
     expect(screen.getByText('85%')).toBeInTheDocument();
   });
 
   it('should not show AI score badge when score <= 70', () => {
-    const nodeWithLowAI = { ...mockNode, aiScore: 65 } as any;
+    const nodeWithLowAI = { ...mockNode, aiScore: 65 };
     renderWithProvider(<WorkflowNode data={nodeWithLowAI} />);
     expect(screen.queryByText('65%')).not.toBeInTheDocument();
   });
 
   it('should show bottleneck indicator when isBottleneck is true', () => {
-    const bottleneckNode = { ...mockNode, isBottleneck: true } as any;
+    const bottleneckNode = { ...mockNode, isBottleneck: true };
     const { container } = renderWithProvider(<WorkflowNode data={bottleneckNode} />);
     
     // 병목 노드는 특정 클래스를 가짐

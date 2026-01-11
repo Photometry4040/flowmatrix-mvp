@@ -318,6 +318,101 @@ const suggestions = useMemo(() => {
 
 ---
 
+#### `NodeContextMenu.tsx`
+
+**역할**: 노드 우클릭 시 표시되는 컨텍스트 메뉴
+
+**Props**:
+```typescript
+interface NodeContextMenuProps {
+  nodeId: string;
+  currentStatus: NodeStatus;
+  onStartNode: (id: string) => void;
+  onCompleteNode: (id: string) => void;
+  onCloneNode: (id: string) => void;
+  onDeleteNode: (id: string) => void;
+  onChangeStatus: (id: string, status: NodeStatus) => void;
+}
+```
+
+**기능**:
+- **조건부 메뉴 항목 표시**: 현재 노드 상태에 따라 적절한 옵션만 표시
+  - `IN_PROGRESS` 또는 `COMPLETED` 상태일 때 "작업 시작" 버튼 숨김
+  - `IN_PROGRESS` 상태일 때만 "완료 처리" 버튼 표시
+- **상태 변경 서브메뉴**: 5가지 상태 중 선택 가능
+  - `PENDING`, `READY`, `IN_PROGRESS`, `COMPLETED`, `BLOCKED`
+  - 현재 상태는 비활성화 표시
+- **노드 복제**: 동일한 속성으로 새 노드 생성 (ID는 새로 발급)
+- **노드 삭제**: 노드 및 연결된 모든 엣지 제거
+
+**WorkflowEngine 통합**:
+컨텍스트 메뉴의 상태 변경 액션은 `workflowEngine.ts`의 검증 로직과 통합됩니다:
+- 선행 작업이 완료되지 않은 노드를 `COMPLETED`로 변경하려고 하면 검증 오류 발생
+- 상태 변경 후 `updateWorkflowStatus()`를 호출하여 후행 노드 상태 자동 업데이트
+
+**사용 위치**:
+- `WorkflowNode.tsx`: 노드 컴포넌트 내부에서 우클릭 이벤트 처리
+- `WorkflowCanvas.tsx`: 상태 변경 핸들러 제공
+
+---
+
+#### `ProjectManager.tsx`
+
+**역할**: 프로젝트 CRUD 관리 다이얼로그
+
+**Props**:
+```typescript
+interface ProjectManagerProps {
+  currentProject: WorkflowProject;
+  onProjectChange: (project: WorkflowProject) => void;
+}
+```
+
+**기능**:
+
+1. **프로젝트 목록 표시**:
+   - LocalStorage에 저장된 모든 프로젝트를 카드 형식으로 표시
+   - 각 프로젝트: 이름, 노드 수, 엣지 수, 생성 시간, 수정 시간, 버전 표시
+   - 현재 프로젝트는 강조 색상으로 표시
+
+2. **생성/삭제**:
+   - **생성**: 프로젝트 이름 입력 → 빈 캔버스로 새 프로젝트 생성
+   - **삭제**: 확인 다이얼로그 표시 후 프로젝트 삭제
+   - 삭제된 프로젝트는 LocalStorage에서 영구 제거
+
+3. **Import/Export**:
+   - **Export**: 현재 프로젝트를 JSON 파일로 다운로드
+     - 파일명 형식: `flowmatrix-프로젝트명-날짜.json`
+   - **Import**: JSON 파일 업로드하여 프로젝트 복원
+     - 기존 프로젝트 ID와 중복되지 않도록 새 ID 발급
+
+4. **저장소 추적**:
+   - LocalStorage 사용량 모니터링 (사용/최대 용량)
+   - 프로젝트 수, 총 노드 수, 총 엣지 수 통계 표시
+   - 용량 부족 경고 (90% 초과 시)
+
+**Integration**:
+- **workflowStorage.ts**의 모든 함수 사용:
+  - `saveProject()`: 프로젝트 저장 및 버전 증가
+  - `loadProject()`: 프로젝트 불러오기
+  - `createNewProject()`: 새 프로젝트 생성
+  - `deleteProject()`: 프로젝트 삭제
+  - `getProjectsList()`: 프로젝트 목록 조회
+  - `duplicateProject()`: 프로젝트 복제
+  - `exportProject()`: JSON export
+  - `importProject()`: JSON import
+  - `getStorageUsage()`: 저장소 사용량 확인
+
+**UI 구성**:
+- **상단**: 저장소 사용량 바 (프로그레스 바)
+- **중앙**: 프로젝트 카드 목록 (스크롤 가능)
+- **하단**: 액션 버튼 (새 프로젝트, Import/Export)
+
+**Dialog 통합**:
+상단 툴바의 "프로젝트 관리" 버튼 클릭 시 shadcn/ui Dialog로 표시됩니다.
+
+---
+
 ### 3. UI 컴포넌트 (shadcn/ui)
 
 `client/src/components/ui/` 디렉토리에는 shadcn/ui 기반의 재사용 가능한 UI 컴포넌트가 있습니다.

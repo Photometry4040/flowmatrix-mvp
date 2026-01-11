@@ -18,6 +18,16 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { ActivityNode, NodeStatus } from "@/types/workflow";
 import {
   Play,
@@ -29,7 +39,7 @@ import {
   AlertCircle,
   XCircle,
 } from "lucide-react";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 
 interface NodeContextMenuProps {
   children: ReactNode;
@@ -67,6 +77,7 @@ export default function NodeContextMenu({
   onChangeStatus,
 }: NodeContextMenuProps) {
   const currentStatus = node.status || "PENDING";
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   return (
     <ContextMenu>
@@ -138,13 +149,39 @@ export default function NodeContextMenu({
         </ContextMenuItem>
 
         <ContextMenuItem
-          onClick={() => onDeleteNode(node.id)}
+          onClick={() => setDeleteDialogOpen(true)}
           className="gap-2 text-destructive focus:text-destructive"
         >
           <Trash2 className="w-4 h-4" />
           노드 삭제
         </ContextMenuItem>
       </ContextMenuContent>
+
+      {/* 삭제 확인 AlertDialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>노드 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{node.label}" 노드를 삭제하시겠습니까?
+              <br />
+              이 노드와 연결된 모든 엣지가 함께 삭제됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onDeleteNode(node.id);
+                setDeleteDialogOpen(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ContextMenu>
   );
 }

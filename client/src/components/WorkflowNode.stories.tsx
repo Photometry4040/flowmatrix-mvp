@@ -104,7 +104,7 @@ export const BottleneckNode: Story = {
         brain_usage: 'LOW',
       },
       isBottleneck: true,
-    } as any,
+    },
   },
 };
 
@@ -121,7 +121,7 @@ export const AIReplaceableNode: Story = {
         brain_usage: 'LOW',
       },
       aiScore: 85,
-    } as any,
+    },
   },
 };
 
@@ -139,7 +139,7 @@ export const BottleneckWithAI: Story = {
       },
       isBottleneck: true,
       aiScore: 92,
-    } as any,
+    },
   },
 };
 

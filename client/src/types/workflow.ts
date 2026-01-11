@@ -42,6 +42,9 @@ export interface ActivityNode {
   completedAt?: string;
   startedAt?: string;
   progress?: number; // 0-100
+  // 분석 결과 관련
+  isBottleneck?: boolean;
+  aiScore?: number; // 0-100
 }
 
 export type RelationType = "TRIGGER" | "BLOCKS" | "REQUIRES" | "FEEDBACK_TO";

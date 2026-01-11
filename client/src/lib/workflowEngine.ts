@@ -80,13 +80,55 @@ export function updateWorkflowStatus(
 }
 
 /**
+ * 노드의 선행 작업 완료 여부 확인
+ */
+export function checkPrerequisites(
+  nodeId: string,
+  nodes: ActivityNode[],
+  edges: WorkflowRelationship[]
+): { canComplete: boolean; incompletePrerequisites: string[] } {
+  // 선행 작업 찾기 (target이 현재 노드인 엣지의 source들)
+  const predecessorIds = edges
+    .filter(edge => edge.target === nodeId)
+    .map(edge => edge.source);
+
+  if (predecessorIds.length === 0) {
+    // 선행 작업이 없으면 바로 완료 가능
+    return { canComplete: true, incompletePrerequisites: [] };
+  }
+
+  // 완료되지 않은 선행 작업 찾기
+  const incompletePrerequisites = predecessorIds
+    .map(predId => nodes.find(n => n.id === predId))
+    .filter(pred => pred && pred.status !== "COMPLETED")
+    .map(pred => pred?.label ?? 'Unknown');
+
+  return {
+    canComplete: incompletePrerequisites.length === 0,
+    incompletePrerequisites
+  };
+}
+
+/**
  * 노드를 완료 상태로 변경하고 후행 작업 활성화
+ * @throws Error 선행 작업이 완료되지 않은 경우
  */
 export function completeNode(
   nodeId: string,
   nodes: ActivityNode[],
   edges: WorkflowRelationship[]
 ): ActivityNode[] {
+  // 선행 작업 완료 여부 확인
+  const { canComplete, incompletePrerequisites } = checkPrerequisites(nodeId, nodes, edges);
+
+  if (!canComplete) {
+    const currentNode = nodes.find(n => n.id === nodeId);
+    const nodeName = currentNode?.label ?? nodeId;
+    throw new Error(
+      `"${nodeName}" 노드를 완료할 수 없습니다. 선행 작업을 먼저 완료하세요: ${incompletePrerequisites.join(', ')}`
+    );
+  }
+
   const updatedNodes = nodes.map(node => {
     if (node.id === nodeId) {
       return {
@@ -98,7 +140,7 @@ export function completeNode(
     }
     return node;
   });
-  
+
   // 전체 워크플로우 상태 재계산
   return updateWorkflowStatus(updatedNodes, edges);
 }
@@ -199,6 +241,48 @@ export function findCriticalPath(
 }
 
 /**
+ * 새 엣지 추가 시 순환 의존성 발생 여부 확인
+ */
+export function wouldCreateCycle(
+  newEdge: { source: string; target: string },
+  existingEdges: WorkflowRelationship[]
+): boolean {
+  // 새 엣지를 포함한 임시 엣지 목록 생성
+  const testEdges = [...existingEdges, {
+    id: 'temp',
+    source: newEdge.source,
+    target: newEdge.target,
+    type: 'DEPENDS_ON' as const
+  }];
+
+  // DFS로 순환 감지
+  function hasCycle(nodeId: string, visited: Set<string>, recStack: Set<string>): boolean {
+    visited.add(nodeId);
+    recStack.add(nodeId);
+
+    const outgoingEdges = testEdges.filter(e => e.source === nodeId);
+    for (const edge of outgoingEdges) {
+      if (!visited.has(edge.target)) {
+        if (hasCycle(edge.target, visited, recStack)) {
+          return true;
+        }
+      } else if (recStack.has(edge.target)) {
+        return true;
+      }
+    }
+
+    recStack.delete(nodeId);
+    return false;
+  }
+
+  const visited = new Set<string>();
+  const recStack = new Set<string>();
+
+  // 새 엣지의 source에서 시작하여 순환 검사
+  return hasCycle(newEdge.source, visited, recStack);
+}
+
+/**
  * 노드 간 의존성 검증
  */
 export function validateDependencies(
@@ -207,12 +291,12 @@ export function validateDependencies(
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   const nodeIds = new Set(nodes.map(n => n.id));
-  
+
   // 순환 의존성 검사
   function hasCycle(nodeId: string, visited: Set<string>, recStack: Set<string>): boolean {
     visited.add(nodeId);
     recStack.add(nodeId);
-    
+
     const outgoingEdges = edges.filter(e => e.source === nodeId);
     for (const edge of outgoingEdges) {
       if (!visited.has(edge.target)) {
@@ -223,14 +307,14 @@ export function validateDependencies(
         return true;
       }
     }
-    
+
     recStack.delete(nodeId);
     return false;
   }
-  
+
   const visited = new Set<string>();
   const recStack = new Set<string>();
-  
+
   for (const node of nodes) {
     if (!visited.has(node.id)) {
       if (hasCycle(node.id, visited, recStack)) {
@@ -238,7 +322,7 @@ export function validateDependencies(
       }
     }
   }
-  
+
   // 존재하지 않는 노드 참조 검사
   for (const edge of edges) {
     if (!nodeIds.has(edge.source)) {
@@ -248,7 +332,7 @@ export function validateDependencies(
       errors.push(`엣지 ${edge.id}: 타겟 노드 ${edge.target}가 존재하지 않습니다.`);
     }
   }
-  
+
   return {
     valid: errors.length === 0,
     errors

@@ -28,6 +28,7 @@ export default function DraggableNodeType({
     <Card
       draggable
       onDragStart={onDragStart}
+      data-testid={`draggable-node-${type.toLowerCase()}`}
       className={`
         p-3 cursor-grab active:cursor-grabbing
         border-2 ${colorClass} bg-card/50

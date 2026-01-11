@@ -20,22 +20,89 @@ const CURRENT_PROJECT_KEY = `${STORAGE_KEY_PREFIX}current`;
  */
 export function saveProject(project: WorkflowProject): void {
   try {
+    // 저장 공간 확인
+    const canSave = checkStorageQuota();
+    if (!canSave) {
+      throw new Error("저장 공간이 가득 찼습니다. 일부 프로젝트를 삭제하거나 내보내기하세요.");
+    }
+
     const projectKey = `${STORAGE_KEY_PREFIX}project_${project.id}`;
     const updatedProject = {
       ...project,
       updatedAt: new Date().toISOString(),
       version: project.version + 1
     };
-    
+
     localStorage.setItem(projectKey, JSON.stringify(updatedProject));
-    
+
     // 프로젝트 목록 업데이트
     updateProjectsList(updatedProject);
-    
+
     console.log(`✅ 프로젝트 저장 완료: ${project.name} (v${updatedProject.version})`);
   } catch (error) {
     console.error("프로젝트 저장 실패:", error);
+    if (error instanceof Error && error.message.includes("저장 공간")) {
+      throw error;
+    }
     throw new Error("워크플로우를 저장할 수 없습니다. 브라우저 저장 공간을 확인하세요.");
+  }
+}
+
+/**
+ * 프로젝트 유효성 검증
+ */
+function validateProject(project: unknown): project is WorkflowProject {
+  if (!project || typeof project !== 'object') {
+    return false;
+  }
+
+  const p = project as Record<string, unknown>;
+
+  // 필수 필드 확인
+  if (typeof p.id !== 'string' || !p.id) return false;
+  if (typeof p.name !== 'string' || !p.name) return false;
+  if (!Array.isArray(p.nodes)) return false;
+  if (!Array.isArray(p.edges)) return false;
+  if (typeof p.createdAt !== 'string') return false;
+  if (typeof p.updatedAt !== 'string') return false;
+  if (typeof p.version !== 'number' || p.version < 1) return false;
+
+  return true;
+}
+
+/**
+ * 손상된 프로젝트 복구 시도
+ */
+function attemptProjectRecovery(projectData: unknown): WorkflowProject | null {
+  if (!projectData || typeof projectData !== 'object') {
+    return null;
+  }
+
+  const p = projectData as Record<string, unknown>;
+
+  try {
+    // 기본 필드 복구 시도
+    const recovered: WorkflowProject = {
+      id: typeof p.id === 'string' ? p.id : nanoid(),
+      name: typeof p.name === 'string' ? p.name : '복구된 프로젝트',
+      description: typeof p.description === 'string' ? p.description : undefined,
+      nodes: Array.isArray(p.nodes) ? p.nodes : [],
+      edges: Array.isArray(p.edges) ? p.edges : [],
+      createdAt: typeof p.createdAt === 'string' ? p.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      version: typeof p.version === 'number' ? p.version : 1
+    };
+
+    // 복구된 프로젝트 유효성 재검증
+    if (validateProject(recovered)) {
+      console.log(`⚠️ 프로젝트 복구 성공: ${recovered.name}`);
+      return recovered;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('프로젝트 복구 실패:', error);
+    return null;
   }
 }
 
@@ -46,14 +113,52 @@ export function loadProject(projectId: string): WorkflowProject | null {
   try {
     const projectKey = `${STORAGE_KEY_PREFIX}project_${projectId}`;
     const data = localStorage.getItem(projectKey);
-    
+
     if (!data) {
       return null;
     }
-    
-    const project = JSON.parse(data) as WorkflowProject;
-    console.log(`✅ 프로젝트 불러오기 완료: ${project.name} (v${project.version})`);
-    return project;
+
+    let project: WorkflowProject;
+
+    try {
+      const parsed = JSON.parse(data);
+
+      // 프로젝트 유효성 검증
+      if (!validateProject(parsed)) {
+        const { toast } = require('sonner');
+        toast.warning('손상된 프로젝트 감지', {
+          description: '프로젝트 데이터가 손상되었습니다. 복구를 시도합니다.',
+        });
+
+        // 복구 시도
+        const recovered = attemptProjectRecovery(parsed);
+        if (recovered) {
+          // 복구된 프로젝트 저장
+          saveProject(recovered);
+          toast.success('프로젝트 복구 완료', {
+            description: `"${recovered.name}" 프로젝트가 복구되었습니다.`,
+          });
+          project = recovered;
+        } else {
+          toast.error('프로젝트 복구 실패', {
+            description: '프로젝트를 복구할 수 없습니다. 삭제 후 다시 생성하세요.',
+          });
+          return null;
+        }
+      } else {
+        project = parsed;
+      }
+
+      console.log(`✅ 프로젝트 불러오기 완료: ${project.name} (v${project.version})`);
+      return project;
+    } catch (parseError) {
+      const { toast } = require('sonner');
+      toast.error('프로젝트 파싱 실패', {
+        description: 'JSON 데이터가 손상되었습니다. 프로젝트를 삭제하세요.',
+      });
+      console.error('JSON 파싱 실패:', parseError);
+      return null;
+    }
   } catch (error) {
     console.error("프로젝트 불러오기 실패:", error);
     return null;
@@ -266,9 +371,9 @@ export function autoSaveProject(
 /**
  * 저장 공간 사용량 확인 (MB)
  */
-export function getStorageUsage(): { used: number; total: number } {
+export function getStorageUsage(): { used: number; total: number; percentage: number } {
   let used = 0;
-  
+
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key?.startsWith(STORAGE_KEY_PREFIX)) {
@@ -278,14 +383,44 @@ export function getStorageUsage(): { used: number; total: number } {
       }
     }
   }
-  
+
   // LocalStorage는 일반적으로 5-10MB 제한
   const total = 5 * 1024 * 1024; // 5MB
-  
+  const usedMB = used / (1024 * 1024);
+  const totalMB = total / (1024 * 1024);
+
   return {
-    used: used / (1024 * 1024), // MB로 변환
-    total: total / (1024 * 1024)
+    used: usedMB,
+    total: totalMB,
+    percentage: (usedMB / totalMB) * 100
   };
+}
+
+/**
+ * 저장 공간 할당량 확인 및 경고
+ * @param threshold 경고 임계값 (기본: 90%)
+ * @returns 저장 가능 여부
+ */
+export function checkStorageQuota(threshold = 90): boolean {
+  const { used, total, percentage } = getStorageUsage();
+
+  if (percentage >= 100) {
+    const { toast } = require('sonner');
+    toast.error('저장 공간이 가득 찼습니다', {
+      description: `${used.toFixed(2)}MB / ${total.toFixed(0)}MB 사용 중. 일부 프로젝트를 삭제하거나 내보내기하세요.`,
+    });
+    return false;
+  }
+
+  if (percentage >= threshold) {
+    const { toast } = require('sonner');
+    toast.warning('저장 공간이 부족합니다', {
+      description: `${percentage.toFixed(0)}% 사용 중 (${used.toFixed(2)}MB / ${total.toFixed(0)}MB). ${(total - used).toFixed(1)}MB 남음.`,
+    });
+    return true; // 경고만 표시, 저장은 가능
+  }
+
+  return true;
 }
 
 /**

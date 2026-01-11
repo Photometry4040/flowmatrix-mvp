@@ -9,6 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import TagAutocomplete from "@/components/TagAutocomplete";
 import type { ActivityNode } from "@/types/workflow";
 import {
@@ -17,30 +27,49 @@ import {
   Clock,
   Sparkles,
   TrendingUp,
+  Trash2,
   X,
   Zap,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface NodeDetailPanelProps {
   node: ActivityNode | null;
   onClose: () => void;
   onUpdate: (node: ActivityNode) => void;
+  onDelete: (nodeId: string) => void;
   allTags: string[];
 }
 
-export default function NodeDetailPanel({ node, onClose, onUpdate, allTags }: NodeDetailPanelProps) {
+export default function NodeDetailPanel({ node, onClose, onUpdate, onDelete, allTags }: NodeDetailPanelProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   if (!node) return null;
 
-  const aiScore = (node as any).aiScore || 0;
-  const isBottleneck = (node as any).isBottleneck || false;
+  const aiScore = node.aiScore ?? 0;
+  const isBottleneck = node.isBottleneck ?? false;
+
+  const handleAnalyze = () => {
+    toast.info(`"${node.label}" 노드에 대한 상세 분석을 시작합니다.`, {
+      description: "AI가 병목 원인과 개선 방안을 분석 중입니다.",
+    });
+  };
+
+  const handleDeleteConfirm = () => {
+    onDelete(node.id);
+    setDeleteDialogOpen(false);
+    onClose();
+    toast.success(`"${node.label}" 노드가 삭제되었습니다.`);
+  };
 
   return (
-    <div className="absolute right-4 top-28 z-10 w-96 max-h-[calc(100vh-8rem)] overflow-y-auto">
+    <div className="absolute right-4 top-28 z-10 w-96 max-h-[calc(100vh-8rem)] overflow-y-auto" data-testid="node-detail-panel">
       <Card className="brutal-card">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle className="text-lg font-display">{node.label}</CardTitle>
+              <CardTitle className="text-lg font-display" data-testid="node-detail-title">{node.label}</CardTitle>
               <CardDescription className="mt-1">
                 {node.department} · {node.stage}
               </CardDescription>
@@ -188,16 +217,52 @@ export default function NodeDetailPanel({ node, onClose, onUpdate, allTags }: No
 
           {/* Action Buttons */}
           <div className="flex gap-2 pt-2">
-            <Button variant="outline" size="sm" className="flex-1 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 gap-2"
+              onClick={handleAnalyze}
+              data-testid="analyze-node-button"
+            >
               <TrendingUp className="w-4 h-4" />
               분석
             </Button>
-            <Button variant="destructive" size="sm" className="flex-1">
+            <Button
+              variant="destructive"
+              size="sm"
+              className="flex-1 gap-2"
+              onClick={() => setDeleteDialogOpen(true)}
+              data-testid="delete-node-button"
+            >
+              <Trash2 className="w-4 h-4" />
               삭제
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation AlertDialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>노드 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말로 "{node.label}" 노드를 삭제하시겠습니까?
+              <br />
+              이 노드와 연결된 모든 엣지가 함께 삭제됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

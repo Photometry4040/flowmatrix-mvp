@@ -19,6 +19,65 @@ FlowMatrix 프로젝트의 모든 주요 변경사항이 이 파일에 기록됩
 
 ---
 
+## [0.3.1] - 2026-01-12
+
+### Added
+- **우클릭 컨텍스트 메뉴**: 노드 작업 시작/완료, 복제, 삭제, 상태 변경
+- **프로젝트 관리 다이얼로그**: 프로젝트 생성/삭제/import/export
+- **키보드 단축키**: Delete/Backspace 키로 노드 삭제
+- **워크플로우 상태 추적**: 의존성 기반 자동 상태 업데이트
+- **진행률 표시**: 상단 툴바에 완료 비율 표시
+- **NodeDetailPanel 버튼 핸들러**:
+  - "분석" 버튼: 노드 분석 시작 toast 표시
+  - "삭제" 버튼: AlertDialog 확인 후 노드 및 연결된 엣지 삭제
+- **Storage Quota 검증** (T5.1):
+  - 저장 공간 90% 초과 시 경고 toast
+  - 100% 초과 시 저장 차단 및 에러 toast
+  - ProjectManager에 저장 공간 사용률 표시
+- **Corrupted Project 복구** (T5.2):
+  - 프로젝트 로드 시 유효성 검증
+  - 손상된 프로젝트 자동 복구 시도
+  - 복구 불가 시 명확한 에러 메시지
+- **Workflow Engine 의존성 검증** (T5.3):
+  - 선행 작업 미완료 시 노드 완료 불가
+  - 미완료 선행 작업 목록 toast 표시
+- **Circular Dependency 감지** (T5.4):
+  - 엣지 생성 시 순환 참조 검사
+  - 순환 구조 발생 시 연결 차단 및 toast 경고
+- **E2E 테스트 안정화** (T5.5):
+  - 모든 주요 컴포넌트에 data-testid 추가
+  - E2E 테스트를 안정적인 selector로 변경
+- **에이전트 팀 구성**:
+  - `.claude/agents/` 디렉토리 생성
+  - Frontend Specialist, Test Specialist 에이전트 설정
+  - Orchestrate 명령어 정의
+
+### Changed
+- 자동 저장 간격: 2초 debounce 적용
+- **Type 안정성 개선**: ActivityNode 타입에 isBottleneck, aiScore 필드 추가
+- **Type casting 제거**: 10개의 'as any' 제거 (컴포넌트, 테스트, Storybook)
+- **UX 개선**: 모든 alert() → toast(), confirm() → AlertDialog 변경
+  - ProjectManager: 3개 alert → toast, 1개 confirm → AlertDialog
+  - WorkflowCanvas: 자동 저장 완료 toast 피드백
+  - NodeContextMenu: 노드 삭제 확인 AlertDialog
+- **E2E 테스트 Selectors**:
+  - Text/CSS 기반 → data-testid 기반으로 전환
+  - 컴포넌트 변경에 강건한 테스트 구조
+
+### Fixed
+- 선행 작업 미완료 시 노드 완료 가능하던 버그 수정
+- 순환 참조 엣지 생성 가능하던 버그 수정
+- 저장 공간 초과 시에도 저장 시도하던 버그 수정
+- E2E 테스트 selector 불안정성 해결
+
+### Documentation
+- README.md에 누락된 기능 문서화
+- ARCHITECTURE.md에 NodeContextMenu, ProjectManager 컴포넌트 설명 추가
+- SKILLS.md 신규 작성 (개발 자동화 스킬 문서화)
+- 에이전트 팀 구성 문서 (.claude/agents/)
+
+---
+
 ## [0.3.0] - 2026-01-10
 
 ### Added

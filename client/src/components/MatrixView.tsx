@@ -77,8 +77,8 @@ export default function MatrixView({ nodes, onNodeClick }: MatrixViewProps) {
                 >
                   {cellNodes.length > 0 ? (
                     cellNodes.map((node) => {
-                      const isBottleneck = (node as any).isBottleneck || false;
-                      const aiScore = (node as any).aiScore || 0;
+                      const isBottleneck = node.isBottleneck ?? false;
+                      const aiScore = node.aiScore ?? 0;
 
                       return (
                         <Card

@@ -18,8 +18,9 @@ import MatrixView from "@/components/MatrixView";
 import DraggableNodeType from "@/components/DraggableNodeType";
 import ProjectManager from "@/components/ProjectManager";
 import type { ActivityNode, Department, NodeType, ProjectStage, WorkflowProject, WorkflowRelationship, NodeStatus } from "@/types/workflow";
-import { updateWorkflowStatus, completeNode, startNode, calculateWorkflowProgress } from "@/lib/workflowEngine";
+import { updateWorkflowStatus, completeNode, startNode, calculateWorkflowProgress, checkPrerequisites, wouldCreateCycle } from "@/lib/workflowEngine";
 import { saveProject, loadCurrentProject, createNewProject, autoSaveProject, getProjectsList } from "@/lib/workflowStorage";
+import { toast } from "sonner";
 import {
   Background,
   BackgroundVariant,
@@ -243,7 +244,7 @@ export default function WorkflowCanvas() {
   // 자동 저장
   useEffect(() => {
     if (!currentProject) return;
-    
+
     const activityNodes = nodes.map(n => n.data);
     const relationships: WorkflowRelationship[] = edges.map(e => ({
       id: e.id,
@@ -252,8 +253,15 @@ export default function WorkflowCanvas() {
       relation_type: "REQUIRES",
       properties: {}
     }));
-    
+
     autoSaveProject(currentProject.id, activityNodes, relationships);
+
+    // 자동 저장 피드백 (2초 debounce 후 표시)
+    const toastTimer = setTimeout(() => {
+      toast.success("자동 저장 완료", { duration: 1500 });
+    }, 2100);
+
+    return () => clearTimeout(toastTimer);
   }, [nodes, edges, currentProject]);
 
   // 워크플로우 상태 업데이트
@@ -280,6 +288,31 @@ export default function WorkflowCanvas() {
 
   const onConnect = useCallback(
     (params: Connection) => {
+      // Validate connection
+      if (!params.source || !params.target) {
+        toast.error('연결 실패', {
+          description: '유효하지 않은 노드 연결입니다.'
+        });
+        return;
+      }
+
+      // Check for circular dependency
+      const workflowEdges: WorkflowRelationship[] = edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        type: 'DEPENDS_ON' as const
+      }));
+
+      if (wouldCreateCycle({ source: params.source, target: params.target }, workflowEdges)) {
+        const sourceNode = nodes.find(n => n.id === params.source);
+        const targetNode = nodes.find(n => n.id === params.target);
+        toast.error('순환 의존성 감지', {
+          description: `"${sourceNode?.data.label ?? params.source}"에서 "${targetNode?.data.label ?? params.target}"로의 연결은 순환 구조를 만듭니다.`
+        });
+        return;
+      }
+
       const newEdge = {
         ...params,
         animated: true,
@@ -287,7 +320,7 @@ export default function WorkflowCanvas() {
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [setEdges]
+    [edges, nodes, setEdges]
   );
 
   const addNode = useCallback(() => {
@@ -402,22 +435,38 @@ export default function WorkflowCanvas() {
   }, [setNodes]);
 
   const handleCompleteNode = useCallback((nodeId: string) => {
-    setNodes((nds) =>
-      nds.map((n) =>
-        n.id === nodeId
-          ? {
-              ...n,
-              data: {
-                ...n.data,
-                status: "COMPLETED" as const,
-                progress: 100,
-              },
-            }
-          : n
-      )
-    );
-    console.log(`✅ 작업 완료: ${nodeId}`);
-  }, [setNodes]);
+    try {
+      // Convert React Flow nodes/edges to workflow format
+      const activityNodes: ActivityNode[] = nodes.map(n => n.data);
+      const workflowEdges: WorkflowRelationship[] = edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        type: 'DEPENDS_ON' as const
+      }));
+
+      // Validate and complete node
+      const updatedActivityNodes = completeNode(nodeId, activityNodes, workflowEdges);
+
+      // Update React Flow nodes
+      setNodes((nds) =>
+        nds.map((n) => {
+          const updatedData = updatedActivityNodes.find(an => an.id === n.id);
+          return updatedData ? { ...n, data: updatedData } : n;
+        })
+      );
+
+      console.log(`✅ 작업 완료: ${nodeId}`);
+    } catch (error) {
+      // Show error toast if prerequisites aren't met
+      if (error instanceof Error) {
+        toast.error('작업을 완료할 수 없습니다', {
+          description: error.message
+        });
+      }
+      console.error('작업 완료 실패:', error);
+    }
+  }, [nodes, edges, setNodes]);
 
   const handleDuplicateNode = useCallback((node: ActivityNode) => {
     const newId = `node_${Date.now()}`;
@@ -737,7 +786,7 @@ export default function WorkflowCanvas() {
               </Select>
             </div>
 
-            <Button onClick={addNode} className="w-full gap-2">
+            <Button onClick={addNode} className="w-full gap-2" data-testid="add-node-button">
               <Plus className="w-4 h-4" />
               노드 추가
             </Button>
@@ -779,19 +828,21 @@ export default function WorkflowCanvas() {
       </div>
 
       {/* Node Detail Panel */}
-      <NodeDetailPanel 
+      <NodeDetailPanel
         node={selectedNode}
         onClose={() => setSelectedNode(null)}
         onUpdate={handleNodeUpdate}
+        onDelete={handleDeleteNode}
         allTags={allTags}
       />
 
       {/* Main Content Area */}
-      <div 
+      <div
         ref={reactFlowWrapper}
         className="flex-1 grid-background"
         onDrop={onDrop}
         onDragOver={onDragOver}
+        data-testid="workflow-canvas"
       >
         {viewMode === "canvas" ? (
           <ReactFlow

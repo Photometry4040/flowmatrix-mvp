@@ -19,14 +19,11 @@ test.describe('FlowMatrix Workflow Canvas', () => {
   });
 
   test('should add a new node to canvas', async ({ page }) => {
-    // 노드 타입 선택
-    const actionButton = page.locator('button:has-text("Action (행동)")').first();
-    await expect(actionButton).toBeVisible();
-    
-    // 노드 추가 버튼 클릭
-    const addButton = page.locator('button:has-text("노드 추가")');
+    // 노드 추가 버튼 클릭 (data-testid 사용)
+    const addButton = page.getByTestId('add-node-button');
+    await expect(addButton).toBeVisible();
     await addButton.click();
-    
+
     // 새 노드가 캔버스에 추가되었는지 확인
     // React Flow 노드는 특정 클래스를 가짐
     const nodes = page.locator('.react-flow__node');
@@ -53,16 +50,16 @@ test.describe('FlowMatrix Workflow Canvas', () => {
   });
 
   test('should open node detail panel when node is clicked', async ({ page }) => {
-    // 노드 추가
-    const addButton = page.locator('button:has-text("노드 추가")');
+    // 노드 추가 (data-testid 사용)
+    const addButton = page.getByTestId('add-node-button');
     await addButton.click();
-    
+
     // 노드 클릭
     const node = page.locator('.react-flow__node').first();
     await node.click();
-    
-    // 노드 상세 패널 확인
-    await expect(page.locator('text=노드 상세 정보')).toBeVisible({ timeout: 3000 });
+
+    // 노드 상세 패널 확인 (data-testid 사용)
+    await expect(page.getByTestId('node-detail-panel')).toBeVisible({ timeout: 3000 });
   });
 
   test('should display statistics in toolbar', async ({ page }) => {
@@ -73,12 +70,12 @@ test.describe('FlowMatrix Workflow Canvas', () => {
   });
 
   test('should drag and drop node type to canvas', async ({ page }) => {
-    // 드래그 가능한 노드 타입 카드 찾기
-    const triggerCard = page.locator('div[draggable="true"]:has-text("Trigger (시작)")').first();
+    // 드래그 가능한 노드 타입 카드 찾기 (data-testid 사용)
+    const triggerCard = page.getByTestId('draggable-node-trigger');
     await expect(triggerCard).toBeVisible();
-    
-    // React Flow 캔버스 찾기
-    const canvas = page.locator('.react-flow__pane');
+
+    // React Flow 캔버스 찾기 (data-testid 사용)
+    const canvas = page.getByTestId('workflow-canvas');
     await expect(canvas).toBeVisible();
     
     // 드래그 앤 드롭 시뮬레이션
@@ -104,14 +101,14 @@ test.describe('FlowMatrix Workflow Canvas', () => {
   });
 
   test('should show AI score for repetitive tasks', async ({ page }) => {
-    // 노드 추가
-    const addButton = page.locator('button:has-text("노드 추가")');
+    // 노드 추가 (data-testid 사용)
+    const addButton = page.getByTestId('add-node-button');
     await addButton.click();
-    
+
     // 노드 클릭하여 상세 패널 열기
     const node = page.locator('.react-flow__node').first();
     await node.click();
-    
+
     // AI 대체 가능성 섹션 확인
     await expect(page.locator('text=AI 대체 가능성')).toBeVisible({ timeout: 3000 });
   });
@@ -146,15 +143,15 @@ test.describe('FlowMatrix Matrix View', () => {
     // 노드를 추가하기 위해 캔버스 뷰로 전환
     const canvasButton = page.locator('button:has-text("캔버스")');
     await canvasButton.click();
-    
-    // 노드 추가
-    const addButton = page.locator('button:has-text("노드 추가")');
+
+    // 노드 추가 (data-testid 사용)
+    const addButton = page.getByTestId('add-node-button');
     await addButton.click();
-    
+
     // 다시 매트릭스 뷰로 전환
     const matrixButton = page.locator('button:has-text("매트릭스")');
     await matrixButton.click();
-    
+
     // 매트릭스 셀에 노드 수가 표시되는지 확인
     // (실제 구현에 따라 셀렉터가 달라질 수 있음)
     const cells = page.locator('.matrix-cell');

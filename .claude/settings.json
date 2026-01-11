@@ -1,0 +1,68 @@
+{
+  "project": {
+    "name": "FlowMatrix MVP",
+    "description": "AI-powered workflow optimization platform with bottleneck detection",
+    "tech_stack": {
+      "frontend": "React 19 + TypeScript + Vite",
+      "backend": "Express (static server)",
+      "storage": "LocalStorage",
+      "testing": "Vitest + Playwright"
+    }
+  },
+  "agents": {
+    "frontend-specialist": {
+      "role": "React/TypeScript developer",
+      "focus": ["React components", "LocalStorage", "UI state", "Toast/AlertDialog"],
+      "files": [
+        "client/src/lib/workflowStorage.ts",
+        "client/src/lib/workflowEngine.ts",
+        "client/src/pages/WorkflowCanvas.tsx",
+        "client/src/components/NodeDetailPanel.tsx"
+      ]
+    },
+    "test-specialist": {
+      "role": "Vitest/Playwright tester",
+      "focus": ["Unit tests", "E2E tests", "TDD", "data-testid selectors"],
+      "files": [
+        "client/src/components/__tests__/*.test.tsx",
+        "e2e/workflow.spec.ts",
+        "e2e/matrix.spec.ts"
+      ]
+    }
+  },
+  "commands": {
+    "orchestrate": {
+      "description": "Coordinate tasks between agents",
+      "usage": "/orchestrate \"<task description>\""
+    }
+  },
+  "development": {
+    "branch_strategy": "Git Worktree",
+    "branches": {
+      "phase-5-storage": ["T5.1", "T5.2"],
+      "phase-5-engine": ["T5.3", "T5.4"],
+      "phase-5-tests": ["T5.5"],
+      "phase-6-ux": ["T6.1", "T6.2", "T6.3"]
+    },
+    "tdd": {
+      "enabled": true,
+      "test_first_tasks": ["T5.1", "T5.3", "T6.2"],
+      "test_last_tasks": ["T6.1"]
+    }
+  },
+  "quality": {
+    "typescript": {
+      "strict": true,
+      "no_any": true
+    },
+    "ui_feedback": {
+      "toast": "sonner",
+      "dialog": "Radix AlertDialog",
+      "no_native_alerts": true
+    },
+    "testing": {
+      "unit_coverage": 80,
+      "e2e_selector_strategy": "data-testid"
+    }
+  }
+}
