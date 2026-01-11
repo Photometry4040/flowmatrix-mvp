@@ -64,7 +64,7 @@ export default function NodeDetailPanel({ node, onClose, onUpdate, onDelete, all
   };
 
   return (
-    <div className="absolute right-4 top-28 z-10 w-96 max-h-[calc(100vh-8rem)] overflow-y-auto" data-testid="node-detail-panel">
+    <div className="absolute right-4 top-32 md:top-36 z-10 w-96 max-h-[calc(100vh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto" data-testid="node-detail-panel">
       <Card className="brutal-card">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">

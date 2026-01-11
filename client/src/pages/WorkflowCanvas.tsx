@@ -576,7 +576,7 @@ export default function WorkflowCanvas() {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
       {/* Top Toolbar */}
-      <header className="floating-toolbar mx-4 mt-4 px-4 py-3 flex items-center justify-between gap-4 z-10">
+      <header className="floating-toolbar mx-4 mt-4 px-4 py-3 flex items-center justify-between gap-4 z-20">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Layers className="w-6 h-6 text-primary" />
@@ -684,7 +684,7 @@ export default function WorkflowCanvas() {
       </header>
 
       {/* Left Sidebar - Node Creation Panel */}
-      <div className="absolute left-4 top-28 z-10 floating-toolbar p-4 w-64 space-y-4">
+      <div className="absolute left-4 top-32 md:top-36 z-10 floating-toolbar p-4 w-64 space-y-4 max-h-[calc(100vh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto">
         <div>
           <h3 className="text-sm font-display font-bold mb-3 text-foreground">노드 추가</h3>
           <p className="text-xs text-muted-foreground mb-3">드래그하여 캔버스에 추가</p>
