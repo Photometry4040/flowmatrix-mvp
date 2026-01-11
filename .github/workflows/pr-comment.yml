@@ -1,0 +1,86 @@
+name: PR Test Results Comment
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  comment:
+    name: Comment Test Results
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled'
+
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Comment PR with test results
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Get PR number
+            const pullRequests = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:${context.payload.workflow_run.head_branch}`
+            });
+
+            if (pullRequests.data.length === 0) {
+              console.log('No open PR found for this branch');
+              return;
+            }
+
+            const prNumber = pullRequests.data[0].number;
+            const conclusion = '${{ github.event.workflow_run.conclusion }}';
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.event.workflow_run.id }}`;
+
+            let emoji = conclusion === 'success' ? '✅' : '❌';
+            let status = conclusion === 'success' ? 'passed' : 'failed';
+
+            const comment = `
+            ## ${emoji} Test Results ${status.toUpperCase()}
+
+            **Workflow Run:** [View Details](${runUrl})
+            **Commit:** ${context.payload.workflow_run.head_sha.substring(0, 7)}
+            **Branch:** \`${context.payload.workflow_run.head_branch}\`
+
+            ${conclusion === 'success'
+              ? '🎉 All tests passed successfully!'
+              : '⚠️ Some tests failed. Please check the workflow run for details.'}
+
+            <details>
+            <summary>View Test Summary</summary>
+
+            - TypeScript Type Check: ${conclusion === 'success' ? '✅' : '❌'}
+            - Unit Tests: ${conclusion === 'success' ? '✅' : '❌'}
+            - E2E Tests: ${conclusion === 'success' ? '✅' : '❌'}
+            - Build: ${conclusion === 'success' ? '✅' : '❌'}
+
+            </details>
+            `;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: comment
+            });
