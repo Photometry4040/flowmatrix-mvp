@@ -140,6 +140,7 @@ const initialNodes: Node<ActivityNode>[] = [
       },
       ontology_tags: ["#QA", "#테스트"],
       position: { x: 600, y: 500 },
+      aiScore: 75,
     },
   },
   {
@@ -592,6 +593,7 @@ export default function WorkflowCanvas() {
               size="sm"
               onClick={() => setViewMode("canvas")}
               className="gap-2 h-8"
+              data-testid="view-toggle-canvas"
             >
               <Network className="w-4 h-4" />
               캔버스
@@ -601,26 +603,27 @@ export default function WorkflowCanvas() {
               size="sm"
               onClick={() => setViewMode("matrix")}
               className="gap-2 h-8"
+              data-testid="view-toggle-matrix"
             >
               <LayoutGrid className="w-4 h-4" />
               매트릭스
             </Button>
           </div>
 
-          <Card className="px-3 py-2 flex items-center gap-4 bg-card/50">
-            <div className="flex items-center gap-2">
+          <Card className="px-3 py-2 flex items-center gap-4 bg-card/50" data-testid="workflow-statistics">
+            <div className="flex items-center gap-2" data-testid="stat-progress">
               <Clock className="w-4 h-4 text-primary" />
               <span className="text-sm font-mono text-foreground">{workflowProgress}%</span>
               <span className="text-xs text-muted-foreground">완료</span>
             </div>
             <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-testid="stat-bottleneck">
               <TrendingUp className="w-4 h-4 text-destructive" />
               <span className="text-sm font-mono text-foreground">{bottleneckCount}</span>
               <span className="text-xs text-muted-foreground">병목</span>
             </div>
             <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-testid="stat-ai-replaceable">
               <Sparkles className="w-4 h-4 text-success" />
               <span className="text-sm font-mono text-foreground">{aiReplaceableCount}</span>
               <span className="text-xs text-muted-foreground">AI 대체 가능</span>

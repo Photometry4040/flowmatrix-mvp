@@ -37,15 +37,18 @@ export default function MatrixView({ nodes, onNodeClick }: MatrixViewProps) {
   };
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <div className="h-full overflow-auto p-6" data-testid="matrix-view">
       <div className="min-w-max">
         {/* Header Row */}
         <div className="grid grid-cols-[200px_repeat(5,minmax(250px,1fr))] gap-3 mb-3">
-          <div className="sticky left-0 z-10" />
+          <div className="sticky left-0 z-10" data-testid="matrix-header-corner">
+            <div className="text-xs text-muted-foreground text-center">부서 \ 단계</div>
+          </div>
           {stages.map((stage) => (
             <div
               key={stage.id}
               className="brutal-card px-4 py-3 text-center bg-card/80 backdrop-blur-sm"
+              data-testid={`matrix-stage-${stage.id.toLowerCase()}`}
             >
               <h3 className="font-display font-bold text-sm text-foreground">
                 {stage.label}
@@ -61,7 +64,10 @@ export default function MatrixView({ nodes, onNodeClick }: MatrixViewProps) {
             className="grid grid-cols-[200px_repeat(5,minmax(250px,1fr))] gap-3 mb-3"
           >
             {/* Department Label */}
-            <div className="sticky left-0 z-10 brutal-card px-4 py-3 bg-card/80 backdrop-blur-sm flex items-center">
+            <div
+              className="sticky left-0 z-10 brutal-card px-4 py-3 bg-card/80 backdrop-blur-sm flex items-center"
+              data-testid={`matrix-dept-${dept.id.toLowerCase()}`}
+            >
               <h3 className="font-display font-bold text-sm text-foreground">
                 {dept.label}
               </h3>
@@ -73,7 +79,8 @@ export default function MatrixView({ nodes, onNodeClick }: MatrixViewProps) {
               return (
                 <div
                   key={`${dept.id}-${stage.id}`}
-                  className="border-2 border-border rounded-sm bg-card/30 p-3 min-h-[150px] space-y-2"
+                  className="border-2 border-border rounded-sm bg-card/30 p-3 min-h-[150px] space-y-2 matrix-cell"
+                  data-testid={`matrix-cell-${dept.id.toLowerCase()}-${stage.id.toLowerCase()}`}
                 >
                   {cellNodes.length > 0 ? (
                     cellNodes.map((node) => {
