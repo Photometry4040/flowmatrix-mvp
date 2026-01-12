@@ -84,3 +84,16 @@ export interface WorkflowProject {
   updatedAt: string;
   version: number;
 }
+
+// Panel UI State Types
+export interface PanelState {
+  isCollapsed: boolean;
+  isFloating: boolean;
+  position?: { x: number; y: number };
+  width: number;
+}
+
+export interface PanelPreferences {
+  leftPanel: PanelState;
+  rightPanel: PanelState;
+}

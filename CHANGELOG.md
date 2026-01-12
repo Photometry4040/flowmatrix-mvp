@@ -19,6 +19,68 @@ FlowMatrix 프로젝트의 모든 주요 변경사항이 이 파일에 기록됩
 
 ---
 
+## [0.3.2] - 2026-01-12
+
+### Added
+- **Collapsible Sidebars**: 좌/우 패널 접기/펼치기 기능
+  - 스프링 애니메이션 (damping: 25, stiffness: 300)
+  - 접힌 상태에서 토글 버튼 표시
+  - LocalStorage 기반 상태 저장
+  - ChevronLeft/ChevronRight 아이콘 토글
+- **Floating Mode**: 패널 플로팅 및 도킹 기능
+  - Pin 버튼으로 float/dock 전환
+  - framer-motion drag API 기반 드래그 가능 패널
+  - 뷰포트 경계 제약 (드래그 영역 제한)
+  - 도킹 버튼이 패널 상단에 플로팅
+  - z-index 계층: canvas(0), docked panels(10), floating(20)
+- **Panel Resize**: NodeDetailPanel 가로 크기 조절 기능
+  - 좌측 엣지 드래그 핸들
+  - GripVertical 아이콘 hover 시 표시
+  - 최소/최대 너비 제약 (300-600px)
+  - 리사이즈 중 fullscreen overlay (드래그 충돌 방지)
+  - 플로팅 모드에서 리사이즈 비활성화
+- **Panel Preferences 저장 시스템**:
+  - `lib/panelPreferences.ts` 유틸리티 생성
+  - LocalStorage 키: `flowmatrix_panel_preferences`
+  - 기본값 merge로 버전 호환성 보장
+  - 자동 저장 (useEffect 기반)
+
+### Changed
+- **Panel System 아키텍처**:
+  - useState 기반 상태 관리 (Context API 없음)
+  - AnimatePresence + motion.div (GPU 가속 애니메이션)
+  - FloatingPanel, ResizablePanel 재사용 가능 컴포넌트
+- **NodeDetailPanel 인터페이스 확장**:
+  - `isCollapsed`, `onToggleCollapse` props 추가
+  - `isFloating`, `onToggleFloating` props 추가
+  - Pin 버튼 조건부 렌더링 (플로팅 모드가 아닐 때만)
+- **WorkflowCanvas 상태 추가**:
+  - `panelPrefs` state (PanelPreferences 타입)
+  - 6개 panel 관련 함수: toggle collapse (left/right), toggle floating (left/right), update position/width
+
+### Technical
+- **New Components**:
+  - `FloatingPanel.tsx`: 드래그 가능 플로팅 패널 래퍼
+  - `ResizablePanel.tsx`: 가로 리사이즈 가능 패널 래퍼
+- **New Types** (`types/workflow.ts`):
+  - `PanelState`: isCollapsed, isFloating, position, width
+  - `PanelPreferences`: leftPanel, rightPanel
+- **New Utilities** (`lib/panelPreferences.ts`):
+  - `loadPanelPreferences()`: LocalStorage에서 로드
+  - `savePanelPreferences()`: LocalStorage에 저장
+  - `resetPanelPreferences()`: 기본값으로 초기화
+- **Dependencies**:
+  - framer-motion v12.23.22 (이미 설치됨) - 애니메이션 및 드래그
+
+### UX Improvements
+- 패널 레이아웃이 세션 간 유지됨
+- 60fps 부드러운 애니메이션
+- 직관적인 아이콘 기반 UI (Pin, ChevronLeft/Right, GripVertical)
+- 드래그 중 시각적 피드백 (cursor 변경, handle glow)
+- 반응형 디자인 (모바일/데스크톱 대응)
+
+---
+
 ## [0.3.1] - 2026-01-12
 
 ### Added

@@ -30,9 +30,13 @@ import {
   Trash2,
   X,
   Zap,
+  ChevronRight,
+  ChevronLeft,
+  Pin,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface NodeDetailPanelProps {
   node: ActivityNode | null;
@@ -40,9 +44,23 @@ interface NodeDetailPanelProps {
   onUpdate: (node: ActivityNode) => void;
   onDelete: (nodeId: string) => void;
   allTags: string[];
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+  isFloating: boolean;
+  onToggleFloating: () => void;
 }
 
-export default function NodeDetailPanel({ node, onClose, onUpdate, onDelete, allTags }: NodeDetailPanelProps) {
+export default function NodeDetailPanel({
+  node,
+  onClose,
+  onUpdate,
+  onDelete,
+  allTags,
+  isCollapsed,
+  onToggleCollapse,
+  isFloating,
+  onToggleFloating
+}: NodeDetailPanelProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   if (!node) return null;
@@ -64,21 +82,53 @@ export default function NodeDetailPanel({ node, onClose, onUpdate, onDelete, all
   };
 
   return (
-    <div className="absolute right-4 top-32 md:top-36 z-10 w-96 max-h-[calc(100vh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto" data-testid="node-detail-panel">
-      <Card className="brutal-card">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="text-lg font-display" data-testid="node-detail-title">{node.label}</CardTitle>
-              <CardDescription className="mt-1">
-                {node.department} · {node.stage}
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardHeader>
+    <>
+      <AnimatePresence mode="wait">
+        {!isCollapsed && (
+          <motion.div
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="absolute right-4 top-32 md:top-36 z-10 w-96 max-h-[calc(100vh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto"
+            data-testid="node-detail-panel"
+          >
+            <Card className="brutal-card">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg font-display" data-testid="node-detail-title">{node.label}</CardTitle>
+                    <CardDescription className="mt-1">
+                      {node.department} · {node.stage}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-1">
+                    {!isFloating && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onToggleFloating}
+                        className="h-6 w-6"
+                        title="플로팅 모드"
+                      >
+                        <Pin className="w-4 h-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={onToggleCollapse}
+                      className="h-6 w-6"
+                      title="패널 접기"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6">
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
 
         <CardContent className="space-y-4">
           {/* Bottleneck Warning */}
@@ -263,6 +313,29 @@ export default function NodeDetailPanel({ node, onClose, onUpdate, onDelete, all
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Collapsed Right Panel Toggle Button */}
+      {isCollapsed && (
+        <motion.div
+          initial={{ x: 40, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="absolute right-4 top-32 md:top-36 z-10"
+        >
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onToggleCollapse}
+            className="brutal-card shadow-lg"
+            title="노드 상세 패널 열기"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+        </motion.div>
+      )}
+    </>
   );
 }

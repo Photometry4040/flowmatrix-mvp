@@ -17,6 +17,8 @@ import NodeDetailPanel from "@/components/NodeDetailPanel";
 import MatrixView from "@/components/MatrixView";
 import DraggableNodeType from "@/components/DraggableNodeType";
 import ProjectManager from "@/components/ProjectManager";
+import FloatingPanel from "@/components/FloatingPanel";
+import ResizablePanel from "@/components/ResizablePanel";
 import type { ActivityNode, Department, NodeType, ProjectStage, WorkflowProject, WorkflowRelationship, NodeStatus } from "@/types/workflow";
 import { updateWorkflowStatus, completeNode, startNode, calculateWorkflowProgress, checkPrerequisites, wouldCreateCycle } from "@/lib/workflowEngine";
 import { saveProject, loadCurrentProject, createNewProject, autoSaveProject, getProjectsList } from "@/lib/workflowStorage";
@@ -50,8 +52,14 @@ import {
   Zap,
   LayoutGrid,
   Network,
+  ChevronLeft,
+  ChevronRight,
+  Pin,
 } from "lucide-react";
 import { useCallback, useState, useRef, useMemo, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { loadPanelPreferences, savePanelPreferences } from "@/lib/panelPreferences";
+import type { PanelPreferences } from "@/types/workflow";
 
 const nodeTypes = {
   workflow: WorkflowNode,
@@ -210,6 +218,78 @@ export default function WorkflowCanvas() {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [currentProject, setCurrentProject] = useState<WorkflowProject | null>(null);
   const [workflowProgress, setWorkflowProgress] = useState<number>(0);
+
+  // Panel preferences state
+  const [panelPrefs, setPanelPrefs] = useState<PanelPreferences>(() =>
+    loadPanelPreferences()
+  );
+
+  // Auto-save panel preferences
+  useEffect(() => {
+    savePanelPreferences(panelPrefs);
+  }, [panelPrefs]);
+
+  // Panel toggle functions
+  const toggleLeftPanelCollapse = useCallback(() => {
+    setPanelPrefs(prev => ({
+      ...prev,
+      leftPanel: { ...prev.leftPanel, isCollapsed: !prev.leftPanel.isCollapsed }
+    }));
+  }, []);
+
+  const toggleRightPanelCollapse = useCallback(() => {
+    setPanelPrefs(prev => ({
+      ...prev,
+      rightPanel: { ...prev.rightPanel, isCollapsed: !prev.rightPanel.isCollapsed }
+    }));
+  }, []);
+
+  // Panel floating functions
+  const toggleLeftPanelFloating = useCallback(() => {
+    setPanelPrefs(prev => ({
+      ...prev,
+      leftPanel: {
+        ...prev.leftPanel,
+        isFloating: !prev.leftPanel.isFloating,
+        position: !prev.leftPanel.isFloating
+          ? { x: Math.max(0, window.innerWidth / 2 - 128), y: 150 }
+          : undefined
+      }
+    }));
+  }, []);
+
+  const toggleRightPanelFloating = useCallback(() => {
+    setPanelPrefs(prev => ({
+      ...prev,
+      rightPanel: {
+        ...prev.rightPanel,
+        isFloating: !prev.rightPanel.isFloating,
+        position: !prev.rightPanel.isFloating
+          ? { x: Math.max(0, window.innerWidth / 2 - 192), y: 150 }
+          : undefined
+      }
+    }));
+  }, []);
+
+  const updatePanelPosition = useCallback((panel: 'left' | 'right', x: number, y: number) => {
+    setPanelPrefs(prev => ({
+      ...prev,
+      [panel === 'left' ? 'leftPanel' : 'rightPanel']: {
+        ...prev[panel === 'left' ? 'leftPanel' : 'rightPanel'],
+        position: { x, y }
+      }
+    }));
+  }, []);
+
+  const updatePanelWidth = useCallback((panel: 'left' | 'right', width: number) => {
+    setPanelPrefs(prev => ({
+      ...prev,
+      [panel === 'left' ? 'leftPanel' : 'rightPanel']: {
+        ...prev[panel === 'left' ? 'leftPanel' : 'rightPanel'],
+        width
+      }
+    }));
+  }, []);
 
   // 프로젝트 로드 또는 생성
   useEffect(() => {
@@ -684,10 +764,206 @@ export default function WorkflowCanvas() {
       </header>
 
       {/* Left Sidebar - Node Creation Panel */}
-      <div className="absolute left-4 top-32 md:top-36 z-10 floating-toolbar p-4 w-64 space-y-4 max-h-[calc(100vh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto">
-        <div>
-          <h3 className="text-sm font-display font-bold mb-3 text-foreground">노드 추가</h3>
-          <p className="text-xs text-muted-foreground mb-3">드래그하여 캔버스에 추가</p>
+      <AnimatePresence mode="wait">
+        {!panelPrefs.leftPanel.isCollapsed && (
+          panelPrefs.leftPanel.isFloating ? (
+            <FloatingPanel
+              isFloating={true}
+              position={panelPrefs.leftPanel.position || { x: 100, y: 150 }}
+              onPositionChange={(x, y) => updatePanelPosition('left', x, y)}
+              onToggleFloating={toggleLeftPanelFloating}
+              width={panelPrefs.leftPanel.width}
+            >
+              <div className="floating-toolbar p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-display font-bold text-foreground">노드 추가</h3>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleLeftPanelCollapse}
+                      className="h-6 w-6"
+                      title="패널 접기"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">드래그하여 캔버스에 추가</p>
+
+                  <div className="space-y-2 mb-4">
+                    <DraggableNodeType
+                      type="TRIGGER"
+                      label="Trigger (시작)"
+                      icon={Play}
+                      colorClass="border-success text-success"
+                    />
+                    <DraggableNodeType
+                      type="ACTION"
+                      label="Action (행동)"
+                      icon={Zap}
+                      colorClass="border-primary text-primary"
+                    />
+                    <DraggableNodeType
+                      type="DECISION"
+                      label="Decision (판단)"
+                      icon={GitBranch}
+                      colorClass="border-accent text-accent"
+                    />
+                    <DraggableNodeType
+                      type="ARTIFACT"
+                      label="Artifact (산출물)"
+                      icon={FileText}
+                      colorClass="border-chart-4 text-chart-4"
+                    />
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <h3 className="text-sm font-display font-bold mb-3 text-foreground">또는 설정 후 추가</h3>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">노드 타입</label>
+                      <Select value={selectedNodeType} onValueChange={(v) => setSelectedNodeType(v as NodeType)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="TRIGGER">
+                            <div className="flex items-center gap-2">
+                              <Play className="w-4 h-4" />
+                              <span>Trigger (시작)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="ACTION">
+                            <div className="flex items-center gap-2">
+                              <Zap className="w-4 h-4" />
+                              <span>Action (행동)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="DECISION">
+                            <div className="flex items-center gap-2">
+                              <GitBranch className="w-4 h-4" />
+                              <span>Decision (판단)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="ARTIFACT">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-4 h-4" />
+                              <span>Artifact (산출물)</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">부서</label>
+                      <Select value={selectedDepartment} onValueChange={(v) => setSelectedDepartment(v as Department)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="HW_TEAM">하드웨어팀</SelectItem>
+                          <SelectItem value="SW_TEAM">소프트웨어팀</SelectItem>
+                          <SelectItem value="DESIGN_TEAM">디자인팀</SelectItem>
+                          <SelectItem value="QA_TEAM">QA팀</SelectItem>
+                          <SelectItem value="PRODUCT_TEAM">제품팀</SelectItem>
+                          <SelectItem value="MARKETING_TEAM">마케팅팀</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">프로젝트 단계</label>
+                      <Select value={selectedStage} onValueChange={(v) => setSelectedStage(v as ProjectStage)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PLANNING">기획</SelectItem>
+                          <SelectItem value="DEVELOPMENT">개발</SelectItem>
+                          <SelectItem value="TESTING">테스트</SelectItem>
+                          <SelectItem value="DEPLOYMENT">배포</SelectItem>
+                          <SelectItem value="MAINTENANCE">유지보수</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Button onClick={addNode} className="w-full gap-2" data-testid="add-node-button">
+                      <Plus className="w-4 h-4" />
+                      노드 추가
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-sm font-display font-bold mb-2 text-foreground">범례</h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm border-2 border-success bg-success/20" />
+                      <span className="text-muted-foreground">Trigger (시작)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm border-2 border-primary bg-primary/20" />
+                      <span className="text-muted-foreground">Action (행동)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm border-2 border-accent bg-accent/20" />
+                      <span className="text-muted-foreground">Decision (판단)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm border-2 border-chart-4 bg-chart-4/20" />
+                      <span className="text-muted-foreground">Artifact (산출물)</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm border-2 border-destructive bg-destructive/20 pulse-bottleneck" />
+                      <span className="text-muted-foreground">병목 구간</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3 h-3 text-success" />
+                      <span className="text-muted-foreground">AI 대체 가능</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </FloatingPanel>
+          ) : (
+            <motion.div
+              initial={{ x: -280, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -280, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute left-4 top-32 md:top-36 z-10 floating-toolbar p-4 w-64 space-y-4 max-h-[calc(100vh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-display font-bold text-foreground">노드 추가</h3>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleLeftPanelFloating}
+                      className="h-6 w-6"
+                      title="플로팅 모드"
+                    >
+                      <Pin className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleLeftPanelCollapse}
+                      className="h-6 w-6"
+                      title="패널 접기"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">드래그하여 캔버스에 추가</p>
           
           <div className="space-y-2 mb-4">
             <DraggableNodeType
@@ -828,16 +1104,74 @@ export default function WorkflowCanvas() {
             </div>
           </div>
         </div>
-      </div>
+          </motion.div>
+          )
+        )}
+      </AnimatePresence>
+
+      {/* Collapsed Left Panel Toggle Button */}
+      {panelPrefs.leftPanel.isCollapsed && (
+        <motion.div
+          initial={{ x: -40, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="absolute left-4 top-32 md:top-36 z-10"
+        >
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleLeftPanelCollapse}
+            className="brutal-card shadow-lg"
+            title="노드 패널 열기"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </motion.div>
+      )}
 
       {/* Node Detail Panel */}
-      <NodeDetailPanel
-        node={selectedNode}
-        onClose={() => setSelectedNode(null)}
-        onUpdate={handleNodeUpdate}
-        onDelete={handleDeleteNode}
-        allTags={allTags}
-      />
+      {selectedNode && !panelPrefs.rightPanel.isCollapsed && panelPrefs.rightPanel.isFloating ? (
+        <FloatingPanel
+          isFloating={true}
+          position={panelPrefs.rightPanel.position || { x: 100, y: 150 }}
+          onPositionChange={(x, y) => updatePanelPosition('right', x, y)}
+          onToggleFloating={toggleRightPanelFloating}
+          width={panelPrefs.rightPanel.width}
+        >
+          <NodeDetailPanel
+            node={selectedNode}
+            onClose={() => setSelectedNode(null)}
+            onUpdate={handleNodeUpdate}
+            onDelete={handleDeleteNode}
+            allTags={allTags}
+            isCollapsed={false}
+            onToggleCollapse={toggleRightPanelCollapse}
+            isFloating={true}
+            onToggleFloating={toggleRightPanelFloating}
+          />
+        </FloatingPanel>
+      ) : (
+        <ResizablePanel
+          isResizable={selectedNode !== null && !panelPrefs.rightPanel.isCollapsed}
+          width={panelPrefs.rightPanel.width}
+          onWidthChange={(width) => updatePanelWidth('right', width)}
+          minWidth={300}
+          maxWidth={600}
+          side="right"
+        >
+          <NodeDetailPanel
+            node={selectedNode}
+            onClose={() => setSelectedNode(null)}
+            onUpdate={handleNodeUpdate}
+            onDelete={handleDeleteNode}
+            allTags={allTags}
+            isCollapsed={panelPrefs.rightPanel.isCollapsed}
+            onToggleCollapse={toggleRightPanelCollapse}
+            isFloating={false}
+            onToggleFloating={toggleRightPanelFloating}
+          />
+        </ResizablePanel>
+      )}
 
       {/* Main Content Area */}
       <div
