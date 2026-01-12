@@ -90,7 +90,7 @@ export default function NodeDetailPanel({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 400, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute right-4 top-32 md:top-36 z-10 w-96 max-h-[calc(100vh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto"
+            className="absolute right-4 top-28 z-20 w-96 max-h-[calc(100vh-8rem)] overflow-y-auto"
             data-testid="node-detail-panel"
           >
             <Card className="brutal-card">
@@ -323,7 +323,7 @@ export default function NodeDetailPanel({
           initial={{ x: 40, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="absolute right-4 top-32 md:top-36 z-10"
+          className="absolute right-4 top-28 z-20"
         >
           <Button
             variant="outline"

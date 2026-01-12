@@ -28,38 +28,49 @@ export default function FloatingPanel({
   if (!isFloating) return <>{children}</>;
 
   // Floating mode: draggable panel with constraints
+  const minX = 0;
+  const minY = 112; // top-28 = 112px
+  const maxX = Math.max(0, window.innerWidth - width - 16);
+  const maxY = Math.max(112, window.innerHeight - 150);
+
   return (
     <motion.div
       drag
       dragMomentum={false}
       dragElastic={0}
       dragConstraints={{
-        left: 0,
-        right: Math.max(0, window.innerWidth - width - 16),
-        top: 100,
-        bottom: Math.max(100, window.innerHeight - 300),
+        left: minX - position.x,
+        right: maxX - position.x,
+        top: minY - position.y,
+        bottom: maxY - position.y,
       }}
       onDragEnd={(_, info) => {
-        onPositionChange(
-          position.x + info.offset.x,
-          position.y + info.offset.y
-        );
+        // Calculate new position based on offset
+        let newX = position.x + info.offset.x;
+        let newY = position.y + info.offset.y;
+
+        // Clamp to viewport bounds
+        newX = Math.max(minX, Math.min(maxX, newX));
+        newY = Math.max(minY, Math.min(maxY, newY));
+
+        onPositionChange(newX, newY);
       }}
       style={{
         position: "fixed",
         left: position.x,
         top: position.y,
         width: width,
-        zIndex: 20,
+        zIndex: 25,
       }}
       className="cursor-grab active:cursor-grabbing"
     >
       {/* Dock Button - floats above panel */}
-      <div className="absolute -top-10 left-0 right-0 flex justify-center">
+      <div className="absolute -top-11 left-1/2 -translate-x-1/2 z-30">
         <Button
           variant="outline"
           size="sm"
           onClick={onToggleFloating}
+          onMouseDown={(e) => e.stopPropagation()}
           className="brutal-card gap-2 h-8 shadow-lg"
           title="패널 도킹"
         >

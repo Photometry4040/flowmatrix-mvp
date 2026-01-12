@@ -252,7 +252,7 @@ export default function WorkflowCanvas() {
         ...prev.leftPanel,
         isFloating: !prev.leftPanel.isFloating,
         position: !prev.leftPanel.isFloating
-          ? { x: Math.max(0, window.innerWidth / 2 - 128), y: 150 }
+          ? { x: Math.max(16, window.innerWidth / 4 - 128), y: 130 }
           : undefined
       }
     }));
@@ -265,7 +265,7 @@ export default function WorkflowCanvas() {
         ...prev.rightPanel,
         isFloating: !prev.rightPanel.isFloating,
         position: !prev.rightPanel.isFloating
-          ? { x: Math.max(0, window.innerWidth / 2 - 192), y: 150 }
+          ? { x: Math.max(16, window.innerWidth - 400), y: 130 }
           : undefined
       }
     }));
@@ -656,7 +656,7 @@ export default function WorkflowCanvas() {
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
       {/* Top Toolbar */}
-      <header className="floating-toolbar mx-4 mt-4 px-4 py-3 flex items-center justify-between gap-4 z-20">
+      <header className="floating-toolbar mx-4 mt-4 px-4 py-2 flex items-center justify-between gap-3 z-30">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Layers className="w-6 h-6 text-primary" />
@@ -690,7 +690,7 @@ export default function WorkflowCanvas() {
             </Button>
           </div>
 
-          <Card className="px-3 py-2 flex items-center gap-4 bg-card/50" data-testid="workflow-statistics">
+          <Card className="px-3 py-1.5 flex items-center gap-3 bg-card/50" data-testid="workflow-statistics">
             <div className="flex items-center gap-2" data-testid="stat-progress">
               <Clock className="w-4 h-4 text-primary" />
               <span className="text-sm font-mono text-foreground">{workflowProgress}%</span>
@@ -769,7 +769,7 @@ export default function WorkflowCanvas() {
           panelPrefs.leftPanel.isFloating ? (
             <FloatingPanel
               isFloating={true}
-              position={panelPrefs.leftPanel.position || { x: 100, y: 150 }}
+              position={panelPrefs.leftPanel.position || { x: 100, y: 130 }}
               onPositionChange={(x, y) => updatePanelPosition('left', x, y)}
               onToggleFloating={toggleLeftPanelFloating}
               width={panelPrefs.leftPanel.width}
@@ -937,7 +937,7 @@ export default function WorkflowCanvas() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -280, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="absolute left-4 top-32 md:top-36 z-10 floating-toolbar p-4 w-64 space-y-4 max-h-[calc(100vh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto"
+              className="absolute left-4 top-28 z-20 floating-toolbar p-4 w-64 space-y-4 max-h-[calc(100vh-8rem)] overflow-y-auto"
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -1115,7 +1115,7 @@ export default function WorkflowCanvas() {
           initial={{ x: -40, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="absolute left-4 top-32 md:top-36 z-10"
+          className="absolute left-4 top-28 z-20"
         >
           <Button
             variant="outline"
@@ -1133,7 +1133,7 @@ export default function WorkflowCanvas() {
       {selectedNode && !panelPrefs.rightPanel.isCollapsed && panelPrefs.rightPanel.isFloating ? (
         <FloatingPanel
           isFloating={true}
-          position={panelPrefs.rightPanel.position || { x: 100, y: 150 }}
+          position={panelPrefs.rightPanel.position || { x: window.innerWidth - 400, y: 130 }}
           onPositionChange={(x, y) => updatePanelPosition('right', x, y)}
           onToggleFloating={toggleRightPanelFloating}
           width={panelPrefs.rightPanel.width}
