@@ -3,7 +3,6 @@
  */
 
 import { useDraggable } from "@dnd-kit/core";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Sparkles, AlertTriangle } from "lucide-react";
 import type { ActivityNode } from "@/types/workflow";
@@ -30,7 +29,7 @@ export default function DraggableMatrixNode({
   const aiScore = node.aiScore ?? 0;
 
   return (
-    <Card
+    <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
@@ -40,7 +39,8 @@ export default function DraggableMatrixNode({
       }}
       className={`
         p-3 cursor-grab active:cursor-grabbing transition-all
-        border-2 ${
+        border-2 rounded-sm bg-card
+        ${
           isBottleneck
             ? "border-destructive bg-destructive/10"
             : "border-primary/50 bg-card"
@@ -87,6 +87,6 @@ export default function DraggableMatrixNode({
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

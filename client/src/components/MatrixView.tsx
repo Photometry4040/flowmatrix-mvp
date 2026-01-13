@@ -29,7 +29,7 @@ export default function MatrixView({
   };
 
   // 동적 그리드 열 계산 (부서 + 단계의 수에 따라)
-  const gridCols = `200px_repeat(${stages.length},minmax(250px,1fr))`;
+  const gridCols = `200px repeat(${stages.length}, minmax(250px, 1fr))`;
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
