@@ -40,21 +40,25 @@ export default function MatrixView({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
+    // @dnd-kit은 data를 { current: {...} }로 감싸기도 함
+    const activeData = (active?.data as any)?.current || active?.data;
+    const overData = (over?.data as any)?.current || over?.data;
+
     console.log("🔍 [Drag End]", {
       activeId: active?.id,
-      activeData: active?.data,
+      activeType: activeData?.type,
+      activeNodeId: activeData?.nodeId,
       overId: over?.id,
-      overData: over?.data,
+      overType: overData?.type,
+      overDeptId: overData?.deptId,
+      overStageId: overData?.stageId,
     });
 
     // 드래그 대상이 노드이고 드롭 대상이 셀인 경우
-    if (
-      active?.data?.type === "node" &&
-      over?.data?.type === "cell"
-    ) {
-      const nodeId = active.data.nodeId as string;
-      const newDept = over.data.deptId as string;
-      const newStage = over.data.stageId as string;
+    if (activeData?.type === "node" && overData?.type === "cell") {
+      const nodeId = activeData.nodeId as string;
+      const newDept = overData.deptId as string;
+      const newStage = overData.stageId as string;
 
       console.log("✅ [Valid Drop]", { nodeId, newDept, newStage });
 
@@ -76,8 +80,8 @@ export default function MatrixView({
     } else {
       console.log("❌ [Invalid Drop]", {
         reason: "not node to cell",
-        activeType: active?.data?.type,
-        overType: over?.data?.type,
+        activeType: activeData?.type,
+        overType: overData?.type,
       });
     }
   };
