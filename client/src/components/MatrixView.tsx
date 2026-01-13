@@ -2,7 +2,7 @@
  * Features: Grid-based swimlanes, cell-based node organization, node repositioning
  */
 
-import { DndContext, DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import MatrixCell from "@/components/MatrixCell";
 import DraggableMatrixNode from "@/components/DraggableMatrixNode";
 import type { ActivityNode, DepartmentConfig, StageConfig } from "@/types/workflow";
@@ -31,8 +31,21 @@ export default function MatrixView({
   // 동적 그리드 열 계산 (부서 + 단계의 수에 따라)
   const gridCols = `200px repeat(${stages.length}, minmax(250px, 1fr))`;
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      distance: 8,
+    })
+  );
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+
+    console.log("🔍 [Drag End]", {
+      activeId: active?.id,
+      activeType: active?.data?.type,
+      overId: over?.id,
+      overType: over?.data?.type,
+    });
 
     // 드래그 대상이 노드이고 드롭 대상이 셀인 경우
     if (
@@ -43,6 +56,8 @@ export default function MatrixView({
       const newDept = over.data.deptId as string;
       const newStage = over.data.stageId as string;
 
+      console.log("✅ [Valid Drop]", { nodeId, newDept, newStage });
+
       // 같은 셀에 드롭한 경우 무시
       const draggedNode = nodes.find((n) => n.id === nodeId);
       if (
@@ -50,6 +65,7 @@ export default function MatrixView({
         draggedNode.department === newDept &&
         draggedNode.stage === newStage
       ) {
+        console.log("⏭️ [Same Cell - Ignored]");
         return;
       }
 
@@ -57,11 +73,13 @@ export default function MatrixView({
       if (onNodeMove) {
         onNodeMove(nodeId, newDept, newStage);
       }
+    } else {
+      console.log("❌ [Invalid Drop - not node to cell]");
     }
   };
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="h-full overflow-auto p-6" data-testid="matrix-view">
         <div className="min-w-max">
           {/* Header Row */}

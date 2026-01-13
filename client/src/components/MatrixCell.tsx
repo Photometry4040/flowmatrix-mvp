@@ -30,6 +30,11 @@ export default function MatrixCell({
   const isDropActive = isOver || isHovered;
   const isDraggingOver = active?.data?.type === "node";
 
+  // Debug: Log when cell is being hovered during drag
+  if (isOver || isDraggingOver) {
+    console.log(`🟢 [Cell ${deptId}-${stageId}] isOver:${isOver}, isDraggingOver:${isDraggingOver}`);
+  }
+
   return (
     <div
       ref={setNodeRef}
