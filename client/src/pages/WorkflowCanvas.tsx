@@ -657,16 +657,16 @@ export default function WorkflowCanvas() {
     <div className="h-screen w-screen flex flex-col bg-background">
       {/* Top Toolbar */}
       <header className="floating-toolbar mx-4 mt-4 px-4 py-2 flex items-center justify-between gap-3 z-30">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-2">
             <Layers className="w-6 h-6 text-primary" />
             <h1 className="text-xl font-display font-bold text-foreground">FlowMatrix</h1>
           </div>
           <Separator orientation="vertical" className="h-6" />
           <span className="text-sm text-muted-foreground">워크플로우 매핑 플랫폼</span>
-        </div>
 
-        <div className="flex items-center gap-2">
+          <Separator orientation="vertical" className="h-6" />
+
           <div className="flex items-center gap-1 brutal-card px-2 py-1 bg-card/50">
             <Button
               variant={viewMode === "canvas" ? "default" : "ghost"}
@@ -689,24 +689,26 @@ export default function WorkflowCanvas() {
               매트릭스
             </Button>
           </div>
+        </div>
 
-          <Card className="px-3 py-1.5 flex items-center gap-3 bg-card/50" data-testid="workflow-statistics">
-            <div className="flex items-center gap-2" data-testid="stat-progress">
-              <Clock className="w-4 h-4 text-primary" />
-              <span className="text-sm font-mono text-foreground">{workflowProgress}%</span>
-              <span className="text-xs text-muted-foreground">완료</span>
+        <div className="flex items-center gap-2">
+          <Card className="px-3 py-1.5 !flex-row !gap-3 !py-2 bg-card/50" data-testid="workflow-statistics">
+            <div className="flex items-center gap-1.5" data-testid="stat-progress">
+              <Clock className="w-5 h-5 text-primary" />
+              <span className="text-sm font-mono font-bold text-foreground">{workflowProgress}%</span>
+              <span className="text-sm text-muted-foreground">완료</span>
             </div>
             <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-2" data-testid="stat-bottleneck">
-              <TrendingUp className="w-4 h-4 text-destructive" />
-              <span className="text-sm font-mono text-foreground">{bottleneckCount}</span>
-              <span className="text-xs text-muted-foreground">병목</span>
+            <div className="flex items-center gap-1.5" data-testid="stat-bottleneck">
+              <TrendingUp className="w-5 h-5 text-destructive" />
+              <span className="text-sm font-mono font-bold text-foreground">{bottleneckCount}</span>
+              <span className="text-sm text-muted-foreground">병목</span>
             </div>
             <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-2" data-testid="stat-ai-replaceable">
-              <Sparkles className="w-4 h-4 text-success" />
-              <span className="text-sm font-mono text-foreground">{aiReplaceableCount}</span>
-              <span className="text-xs text-muted-foreground">AI 대체 가능</span>
+            <div className="flex items-center gap-1.5" data-testid="stat-ai-replaceable">
+              <Sparkles className="w-5 h-5 text-success" />
+              <span className="text-sm font-mono font-bold text-foreground">{aiReplaceableCount}</span>
+              <span className="text-sm text-muted-foreground">AI 대체</span>
             </div>
           </Card>
 
@@ -1119,12 +1121,11 @@ export default function WorkflowCanvas() {
         >
           <Button
             variant="outline"
-            size="icon"
             onClick={toggleLeftPanelCollapse}
-            className="brutal-card shadow-lg"
+            className="brutal-card shadow-lg h-20 w-20 p-0 flex items-center justify-center"
             title="노드 패널 열기"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="size-12" />
           </Button>
         </motion.div>
       )}

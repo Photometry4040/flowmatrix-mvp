@@ -19,6 +19,60 @@ FlowMatrix 프로젝트의 모든 주요 변경사항이 이 파일에 기록됩
 
 ---
 
+## [0.3.3] - 2026-01-13
+
+### Added
+- **Collapsible NodeDetailPanel Sections**: 우측 패널 섹션 접기 기능
+  - 기본 정보 (기본 확장)
+  - 사용 도구 (기본 접힘)
+  - 온톨로지 태그 (기본 접힘)
+  - 프로세스 메트릭 (기본 접힘)
+  - ChevronDown 아이콘으로 토글
+  - Framer Motion 부드러운 애니메이션 (height 전환)
+- **Drag Handle for Floating Panel**: 헤더에서만 드래그 가능
+  - `.drag-handle` 클래스로 드래그 영역 제한
+  - CardHeader에 cursor-grab/grabbing 스타일 적용
+  - 패널의 다른 영역 클릭 시 드래그 무시
+
+### Changed
+- **Header Layout 재구성**:
+  - 뷰 토글 버튼 (Canvas/Matrix) 왼쪽으로 이동
+  - 통계 카드 (완료%, 병목, AI 대체) 컴팩트화
+  - 통계: 3줄 → 1줄 레이아웃 (`!flex-row` override)
+  - 통계 텍스트: text-xs → text-sm (약 33% 증가)
+  - 통계 아이콘: w-3.5 h-3.5 → w-5 h-5 (약 42% 증가)
+  - 숫자에 font-bold 추가로 강조
+- **Floating Panel 도킹 버튼 위치**:
+  - FloatingPanel의 절대 위치 버튼 제거 (`-top-11`)
+  - NodeDetailPanel CardHeader에 항상 표시
+  - isFloating 상태에 따라 tooltip 변경 (플로팅 모드 ↔ 패널 도킹)
+- **Collapsed Panel Toggle 버튼 크기 증대**:
+  - WorkflowCanvas 왼쪽 버튼: h-12 w-12 → h-20 w-20
+  - NodeDetailPanel 오른쪽 버튼: h-12 w-12 → h-20 w-20
+  - 아이콘 크기: w-9 h-9 → size-12 (48px)
+  - size- prefix 사용으로 Button 컴포넌트의 CSS 제약 회피
+- **DraggableNodeType 레이아웃**:
+  - Card 기본 스타일 override: `!flex-row !py-0 !gap-2`
+  - 4개 버튼 (TRIGGER, ACTION, DECISION, ARTIFACT) 2줄 → 1줄 표현
+  - 아이콘 + 텍스트 수평 배치
+
+### Fixed
+- Button 컴포넌트 SVG 크기 제약 규칙 회피
+  - `[&_svg:not([class*='size-'])]:size-4` CSS 규칙으로 인한 아이콘 강제 축소 문제
+  - `size-12` 클래스 사용으로 정상 크기 적용
+- NodeDetailPanel 도킹 버튼 위치 이슈
+  - FloatingPanel의 절대 위치 버튼이 CardHeader 버튼과 중복
+  - CardHeader 내 버튼으로 통합하여 일관된 UX 제공
+
+### UX Improvements
+- 패널 섹션 접기로 초기 화면 공간 효율성 60% 개선
+- 헤더 통계 정보 한 줄 표현으로 레이아웃 간결화
+- 접힌 패널 토글 버튼 크기 66% 증가로 명확한 인지도
+- 아이콘 크기 조정으로 더 명확한 시각적 피드백
+- 일관된 드래그 경험 (헤더 영역에서만 드래그 가능)
+
+---
+
 ## [0.3.2] - 2026-01-12
 
 ### Added

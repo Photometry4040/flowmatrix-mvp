@@ -33,7 +33,7 @@ export default function DraggableNodeType({
         p-3 cursor-grab active:cursor-grabbing
         border-2 ${colorClass} bg-card/50
         hover:bg-card hover:scale-105 transition-all
-        flex items-center gap-2
+        !flex-row !py-0 !gap-2
       `}
     >
       <div className={`p-1.5 rounded-sm border-2 ${colorClass} bg-background`}>

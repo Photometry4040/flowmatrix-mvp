@@ -33,8 +33,9 @@ import {
   ChevronRight,
   ChevronLeft,
   Pin,
+  ChevronDown,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -48,6 +49,7 @@ interface NodeDetailPanelProps {
   onToggleCollapse: () => void;
   isFloating: boolean;
   onToggleFloating: () => void;
+  dragHandleRef?: React.RefObject<HTMLDivElement>;
 }
 
 export default function NodeDetailPanel({
@@ -59,14 +61,28 @@ export default function NodeDetailPanel({
   isCollapsed,
   onToggleCollapse,
   isFloating,
-  onToggleFloating
+  onToggleFloating,
+  dragHandleRef
 }: NodeDetailPanelProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+    basic: true,
+    tools: false,
+    tags: false,
+    metrics: false,
+  });
 
   if (!node) return null;
 
   const aiScore = node.aiScore ?? 0;
   const isBottleneck = node.isBottleneck ?? false;
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
   const handleAnalyze = () => {
     toast.info(`"${node.label}" 노드에 대한 상세 분석을 시작합니다.`, {
@@ -94,7 +110,7 @@ export default function NodeDetailPanel({
             data-testid="node-detail-panel"
           >
             <Card className="brutal-card">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 drag-handle cursor-grab active:cursor-grabbing" ref={dragHandleRef}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg font-display" data-testid="node-detail-title">{node.label}</CardTitle>
@@ -103,17 +119,15 @@ export default function NodeDetailPanel({
                     </CardDescription>
                   </div>
                   <div className="flex gap-1">
-                    {!isFloating && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onToggleFloating}
-                        className="h-6 w-6"
-                        title="플로팅 모드"
-                      >
-                        <Pin className="w-4 h-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={onToggleFloating}
+                      className="h-6 w-6"
+                      title={isFloating ? "패널 도킹" : "플로팅 모드"}
+                    >
+                      <Pin className="w-4 h-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -179,90 +193,177 @@ export default function NodeDetailPanel({
 
           {/* Basic Properties */}
           <div className="space-y-3">
-            <h4 className="font-display font-semibold text-sm">기본 정보</h4>
-            
-            <div className="space-y-2">
-              <Label htmlFor="label" className="text-xs">작업명</Label>
-              <Input 
-                id="label" 
-                value={node.label} 
-                className="font-body"
-                onChange={(e) => onUpdate({ ...node, label: e.target.value })}
+            <button
+              onClick={() => toggleSection('basic')}
+              className="w-full flex items-center justify-between hover:opacity-70 transition-opacity"
+            >
+              <h4 className="font-display font-semibold text-sm">기본 정보</h4>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${
+                  expandedSections.basic ? 'rotate-0' : '-rotate-90'
+                }`}
               />
-            </div>
+            </button>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs mb-1.5 block">소요 시간</Label>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-mono">{node.attributes.avg_time}</span>
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs mb-1.5 block">창의성 필요도</Label>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted">
-                  <Brain className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-mono">{node.attributes.brain_usage}</span>
-                </div>
-              </div>
-            </div>
+            <AnimatePresence>
+              {expandedSections.basic && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden space-y-2"
+                >
+                  <div>
+                    <Label htmlFor="label" className="text-xs">작업명</Label>
+                    <Input
+                      id="label"
+                      value={node.label}
+                      className="font-body"
+                      onChange={(e) => onUpdate({ ...node, label: e.target.value })}
+                    />
+                  </div>
 
-            {node.attributes.assignee && (
-              <div>
-                <Label className="text-xs mb-1.5 block">담당자</Label>
-                <Input value={node.attributes.assignee} className="font-body" />
-              </div>
-            )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs mb-1.5 block">소요 시간</Label>
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-mono">{node.attributes.avg_time}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs mb-1.5 block">창의성 필요도</Label>
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted">
+                        <Brain className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-mono">{node.attributes.brain_usage}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {node.attributes.assignee && (
+                    <div>
+                      <Label className="text-xs mb-1.5 block">담당자</Label>
+                      <Input value={node.attributes.assignee} className="font-body" />
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <Separator />
 
           {/* Tools */}
           <div className="space-y-3">
-            <h4 className="font-display font-semibold text-sm">사용 도구</h4>
-            <div className="flex flex-wrap gap-2">
-              {node.attributes.tool.length > 0 ? (
-                node.attributes.tool.map((tool, idx) => (
-                  <Badge key={idx} variant="secondary" className="font-mono">
-                    {tool}
-                  </Badge>
-                ))
-              ) : (
-                <span className="text-sm text-muted-foreground">등록된 도구 없음</span>
+            <button
+              onClick={() => toggleSection('tools')}
+              className="w-full flex items-center justify-between hover:opacity-70 transition-opacity"
+            >
+              <h4 className="font-display font-semibold text-sm">사용 도구</h4>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${
+                  expandedSections.tools ? 'rotate-0' : '-rotate-90'
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {expandedSections.tools && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden flex flex-wrap gap-2"
+                >
+                  {node.attributes.tool.length > 0 ? (
+                    node.attributes.tool.map((tool, idx) => (
+                      <Badge key={idx} variant="secondary" className="font-mono">
+                        {tool}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">등록된 도구 없음</span>
+                  )}
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
           </div>
 
           <Separator />
 
           {/* Tags */}
           <div className="space-y-3">
-            <h4 className="font-display font-semibold text-sm">온톨로지 태그</h4>
-            <TagAutocomplete
-              selectedTags={node.ontology_tags}
-              onTagsChange={(tags) => onUpdate({ ...node, ontology_tags: tags })}
-              allTags={allTags}
-            />
+            <button
+              onClick={() => toggleSection('tags')}
+              className="w-full flex items-center justify-between hover:opacity-70 transition-opacity"
+            >
+              <h4 className="font-display font-semibold text-sm">온톨로지 태그</h4>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${
+                  expandedSections.tags ? 'rotate-0' : '-rotate-90'
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {expandedSections.tags && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <TagAutocomplete
+                    selectedTags={node.ontology_tags}
+                    onTagsChange={(tags) => onUpdate({ ...node, ontology_tags: tags })}
+                    allTags={allTags}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <Separator />
 
           {/* Metrics */}
           <div className="space-y-3">
-            <h4 className="font-display font-semibold text-sm">프로세스 메트릭</h4>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">반복 작업</span>
-                <Badge variant={node.attributes.is_repetitive ? "default" : "secondary"}>
-                  {node.attributes.is_repetitive ? "예" : "아니오"}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">노드 타입</span>
-                <Badge variant="outline">{node.type}</Badge>
-              </div>
-            </div>
+            <button
+              onClick={() => toggleSection('metrics')}
+              className="w-full flex items-center justify-between hover:opacity-70 transition-opacity"
+            >
+              <h4 className="font-display font-semibold text-sm">프로세스 메트릭</h4>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${
+                  expandedSections.metrics ? 'rotate-0' : '-rotate-90'
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {expandedSections.metrics && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden space-y-2"
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">반복 작업</span>
+                    <Badge variant={node.attributes.is_repetitive ? "default" : "secondary"}>
+                      {node.attributes.is_repetitive ? "예" : "아니오"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">노드 타입</span>
+                    <Badge variant="outline">{node.type}</Badge>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Action Buttons */}
@@ -327,12 +428,11 @@ export default function NodeDetailPanel({
         >
           <Button
             variant="outline"
-            size="icon"
             onClick={onToggleCollapse}
-            className="brutal-card shadow-lg"
+            className="brutal-card shadow-lg h-20 w-20 p-0 flex items-center justify-center"
             title="노드 상세 패널 열기"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="size-12" />
           </Button>
         </motion.div>
       )}
