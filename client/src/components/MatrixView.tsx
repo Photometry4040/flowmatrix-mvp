@@ -1,24 +1,26 @@
-/* Design: Department × Project Stage matrix layout
- * Features: Grid-based swimlanes, cell-based node organization
+/* Design: Department × Project Stage matrix layout with drag-and-drop
+ * Features: Grid-based swimlanes, cell-based node organization, node repositioning
  */
 
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { DndContext, DragEndEvent } from "@dnd-kit/core";
+import MatrixCell from "@/components/MatrixCell";
+import DraggableMatrixNode from "@/components/DraggableMatrixNode";
 import type { ActivityNode, DepartmentConfig, StageConfig } from "@/types/workflow";
-import { Clock, Sparkles, AlertTriangle } from "lucide-react";
 
 interface MatrixViewProps {
   nodes: ActivityNode[];
   departments: DepartmentConfig[];
   stages: StageConfig[];
   onNodeClick: (node: ActivityNode) => void;
+  onNodeMove?: (nodeId: string, newDept: string, newStage: string) => void;
 }
 
 export default function MatrixView({
   nodes,
   departments,
   stages,
-  onNodeClick
+  onNodeClick,
+  onNodeMove,
 }: MatrixViewProps) {
   const getNodesForCell = (deptId: string, stageId: string) => {
     return nodes.filter(
@@ -29,122 +31,125 @@ export default function MatrixView({
   // 동적 그리드 열 계산 (부서 + 단계의 수에 따라)
   const gridCols = `200px_repeat(${stages.length},minmax(250px,1fr))`;
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    // 드래그 대상이 노드이고 드롭 대상이 셀인 경우
+    if (
+      active?.data?.type === "node" &&
+      over?.data?.type === "cell"
+    ) {
+      const nodeId = active.data.nodeId as string;
+      const newDept = over.data.deptId as string;
+      const newStage = over.data.stageId as string;
+
+      // 같은 셀에 드롭한 경우 무시
+      const draggedNode = nodes.find((n) => n.id === nodeId);
+      if (
+        draggedNode &&
+        draggedNode.department === newDept &&
+        draggedNode.stage === newStage
+      ) {
+        return;
+      }
+
+      // 노드 이동 콜백 실행
+      if (onNodeMove) {
+        onNodeMove(nodeId, newDept, newStage);
+      }
+    }
+  };
+
   return (
-    <div className="h-full overflow-auto p-6" data-testid="matrix-view">
-      <div className="min-w-max">
-        {/* Header Row */}
-        <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: "12px", marginBottom: "12px" }}>
-          <div className="sticky left-0 z-10" data-testid="matrix-header-corner">
-            <div className="text-xs text-muted-foreground text-center">부서 \ 단계</div>
-          </div>
-          {stages.map((stage) => (
-            <div
-              key={stage.id}
-              className="brutal-card px-4 py-3 text-center bg-card/80 backdrop-blur-sm"
-              data-testid={`matrix-stage-${stage.id.toLowerCase()}`}
-            >
-              <h3 className="font-display font-bold text-sm text-foreground">
-                {stage.label}
-              </h3>
-            </div>
-          ))}
-        </div>
-
-        {/* Matrix Grid */}
-        {departments.map((dept) => (
+    <DndContext onDragEnd={handleDragEnd}>
+      <div className="h-full overflow-auto p-6" data-testid="matrix-view">
+        <div className="min-w-max">
+          {/* Header Row */}
           <div
-            key={dept.id}
-            style={{ display: "grid", gridTemplateColumns: gridCols, gap: "12px", marginBottom: "12px" }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: gridCols,
+              gap: "12px",
+              marginBottom: "12px",
+            }}
           >
-            {/* Department Label */}
             <div
-              className="sticky left-0 z-10 brutal-card px-4 py-3 bg-card/80 backdrop-blur-sm flex items-center"
-              data-testid={`matrix-dept-${dept.id.toLowerCase()}`}
+              className="sticky left-0 z-10"
+              data-testid="matrix-header-corner"
             >
-              <h3 className="font-display font-bold text-sm text-foreground">
-                {dept.label}
-              </h3>
+              <div className="text-xs text-muted-foreground text-center">
+                부서 \ 단계
+              </div>
             </div>
-
-            {/* Stage Cells */}
-            {stages.map((stage) => {
-              const cellNodes = getNodesForCell(dept.id, stage.id);
-              return (
+            {stages
+              .sort((a, b) => a.order - b.order)
+              .map((stage) => (
                 <div
-                  key={`${dept.id}-${stage.id}`}
-                  className="border-2 border-border rounded-sm bg-card/30 p-3 min-h-[150px] space-y-2 matrix-cell"
-                  data-testid={`matrix-cell-${dept.id.toLowerCase()}-${stage.id.toLowerCase()}`}
+                  key={stage.id}
+                  className="brutal-card px-4 py-3 text-center bg-card/80 backdrop-blur-sm"
+                  data-testid={`matrix-stage-${stage.id.toLowerCase()}`}
                 >
-                  {cellNodes.length > 0 ? (
-                    cellNodes.map((node) => {
-                      const isBottleneck = node.isBottleneck ?? false;
-                      const aiScore = node.aiScore ?? 0;
-
-                      return (
-                        <Card
-                          key={node.id}
-                          onClick={() => onNodeClick(node)}
-                          className={`
-                            p-3 cursor-pointer transition-all hover:scale-[1.02]
-                            border-2 ${
-                              isBottleneck
-                                ? "border-destructive bg-destructive/10"
-                                : "border-primary/50 bg-card"
-                            }
-                            ${isBottleneck ? "pulse-bottleneck" : ""}
-                          `}
-                        >
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <h4 className="text-sm font-semibold text-foreground leading-tight flex-1">
-                                {node.label}
-                              </h4>
-                              {aiScore > 70 && (
-                                <Sparkles className="w-4 h-4 text-success flex-shrink-0" />
-                              )}
-                              {isBottleneck && (
-                                <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Clock className="w-3 h-3" />
-                              <span className="font-mono">{node.attributes.avg_time}</span>
-                            </div>
-
-                            {node.attributes.tool.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {node.attributes.tool.slice(0, 2).map((tool, idx) => (
-                                  <Badge
-                                    key={idx}
-                                    variant="secondary"
-                                    className="text-xs px-1.5 py-0 font-mono"
-                                  >
-                                    {tool}
-                                  </Badge>
-                                ))}
-                                {node.attributes.tool.length > 2 && (
-                                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                                    +{node.attributes.tool.length - 2}
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      );
-                    })
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
-                      노드 없음
-                    </div>
-                  )}
+                  <h3 className="font-display font-bold text-sm text-foreground">
+                    {stage.label}
+                  </h3>
                 </div>
-              );
-            })}
+              ))}
           </div>
-        ))}
+
+          {/* Matrix Grid */}
+          {departments
+            .sort((a, b) => a.order - b.order)
+            .map((dept) => (
+              <div
+                key={dept.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: gridCols,
+                  gap: "12px",
+                  marginBottom: "12px",
+                }}
+              >
+                {/* Department Label */}
+                <div
+                  className="sticky left-0 z-10 brutal-card px-4 py-3 bg-card/80 backdrop-blur-sm flex items-center"
+                  data-testid={`matrix-dept-${dept.id.toLowerCase()}`}
+                >
+                  <h3 className="font-display font-bold text-sm text-foreground">
+                    {dept.label}
+                  </h3>
+                </div>
+
+                {/* Stage Cells */}
+                {stages
+                  .sort((a, b) => a.order - b.order)
+                  .map((stage) => {
+                    const cellNodes = getNodesForCell(dept.id, stage.id);
+                    return (
+                      <MatrixCell
+                        key={`${dept.id}-${stage.id}`}
+                        deptId={dept.id}
+                        stageId={stage.id}
+                      >
+                        {cellNodes.length > 0 ? (
+                          cellNodes.map((node) => (
+                            <DraggableMatrixNode
+                              key={node.id}
+                              node={node}
+                              onNodeClick={onNodeClick}
+                            />
+                          ))
+                        ) : (
+                          <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                            노드 없음
+                          </div>
+                        )}
+                      </MatrixCell>
+                    );
+                  })}
+              </div>
+            ))}
+        </div>
       </div>
-    </div>
+    </DndContext>
   );
 }

@@ -616,6 +616,46 @@ export default function WorkflowCanvas() {
     console.log(`🔄 상태 변경: ${nodeId} → ${status}`);
   }, [setNodes]);
 
+  // 노드 이동 핸들러 (MatrixView 드래그앤드롭)
+  const handleNodeMove = useCallback(
+    (nodeId: string, newDept: string, newStage: string) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  department: newDept,
+                  stage: newStage,
+                },
+              }
+            : n
+        )
+      );
+
+      // 선택된 노드도 업데이트
+      if (selectedNode?.id === nodeId) {
+        setSelectedNode({
+          ...selectedNode,
+          department: newDept,
+          stage: newStage,
+        });
+      }
+
+      const movedNode = nodes.find((n) => n.id === nodeId);
+      const newDeptLabel = workspaceConfig.departments.find(d => d.id === newDept)?.label || newDept;
+      const newStageLabel = workspaceConfig.stages.find(s => s.id === newStage)?.label || newStage;
+
+      toast.success(`"${movedNode?.data.label}"을(를) 이동했습니다`, {
+        description: `${newDeptLabel} · ${newStageLabel}`,
+      });
+
+      console.log(`📍 노드 이동: ${nodeId} → ${newDept}/${newStage}`);
+    },
+    [nodes, selectedNode, workspaceConfig, setNodes]
+  );
+
   // 노드에 액션 핸들러 주입
   const nodesWithHandlers = useMemo(
     () =>
@@ -1276,6 +1316,7 @@ export default function WorkflowCanvas() {
             departments={workspaceConfig.departments}
             stages={workspaceConfig.stages}
             onNodeClick={(node) => setSelectedNode(node)}
+            onNodeMove={handleNodeMove}
           />
         )}
         </div>
