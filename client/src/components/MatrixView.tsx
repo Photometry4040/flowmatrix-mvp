@@ -4,43 +4,36 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { ActivityNode, Department, ProjectStage } from "@/types/workflow";
+import type { ActivityNode, DepartmentConfig, StageConfig } from "@/types/workflow";
 import { Clock, Sparkles, AlertTriangle } from "lucide-react";
 
 interface MatrixViewProps {
   nodes: ActivityNode[];
+  departments: DepartmentConfig[];
+  stages: StageConfig[];
   onNodeClick: (node: ActivityNode) => void;
 }
 
-const departments: { id: Department; label: string }[] = [
-  { id: "PRODUCT_TEAM", label: "제품팀" },
-  { id: "DESIGN_TEAM", label: "디자인팀" },
-  { id: "HW_TEAM", label: "하드웨어팀" },
-  { id: "SW_TEAM", label: "소프트웨어팀" },
-  { id: "QA_TEAM", label: "QA팀" },
-  { id: "MARKETING_TEAM", label: "마케팅팀" },
-];
-
-const stages: { id: ProjectStage; label: string }[] = [
-  { id: "PLANNING", label: "기획" },
-  { id: "DEVELOPMENT", label: "개발" },
-  { id: "TESTING", label: "테스트" },
-  { id: "DEPLOYMENT", label: "배포" },
-  { id: "MAINTENANCE", label: "유지보수" },
-];
-
-export default function MatrixView({ nodes, onNodeClick }: MatrixViewProps) {
-  const getNodesForCell = (department: Department, stage: ProjectStage) => {
+export default function MatrixView({
+  nodes,
+  departments,
+  stages,
+  onNodeClick
+}: MatrixViewProps) {
+  const getNodesForCell = (deptId: string, stageId: string) => {
     return nodes.filter(
-      (node) => node.department === department && node.stage === stage
+      (node) => node.department === deptId && node.stage === stageId
     );
   };
+
+  // 동적 그리드 열 계산 (부서 + 단계의 수에 따라)
+  const gridCols = `200px_repeat(${stages.length},minmax(250px,1fr))`;
 
   return (
     <div className="h-full overflow-auto p-6" data-testid="matrix-view">
       <div className="min-w-max">
         {/* Header Row */}
-        <div className="grid grid-cols-[200px_repeat(5,minmax(250px,1fr))] gap-3 mb-3">
+        <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: "12px", marginBottom: "12px" }}>
           <div className="sticky left-0 z-10" data-testid="matrix-header-corner">
             <div className="text-xs text-muted-foreground text-center">부서 \ 단계</div>
           </div>
@@ -61,7 +54,7 @@ export default function MatrixView({ nodes, onNodeClick }: MatrixViewProps) {
         {departments.map((dept) => (
           <div
             key={dept.id}
-            className="grid grid-cols-[200px_repeat(5,minmax(250px,1fr))] gap-3 mb-3"
+            style={{ display: "grid", gridTemplateColumns: gridCols, gap: "12px", marginBottom: "12px" }}
           >
             {/* Department Label */}
             <div

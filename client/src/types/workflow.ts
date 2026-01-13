@@ -3,20 +3,28 @@
 
 export type NodeType = "TRIGGER" | "ACTION" | "DECISION" | "ARTIFACT";
 
-export type Department = 
-  | "HW_TEAM" 
-  | "SW_TEAM" 
-  | "DESIGN_TEAM" 
-  | "QA_TEAM" 
-  | "PRODUCT_TEAM"
-  | "MARKETING_TEAM";
+// 동적 부서/단계 지원을 위해 string 타입으로 변경
+export type Department = string;
+export type ProjectStage = string;
 
-export type ProjectStage = 
-  | "PLANNING" 
-  | "DEVELOPMENT" 
-  | "TESTING" 
-  | "DEPLOYMENT" 
-  | "MAINTENANCE";
+// 부서/단계 설정 관리를 위한 새로운 타입들
+export interface DepartmentConfig {
+  id: string;
+  label: string;
+  order: number;
+}
+
+export interface StageConfig {
+  id: string;
+  label: string;
+  order: number;
+}
+
+export interface WorkspaceConfig {
+  id: string;
+  departments: DepartmentConfig[];
+  stages: StageConfig[];
+}
 
 export type BrainUsage = "LOW" | "MEDIUM" | "HIGH";
 

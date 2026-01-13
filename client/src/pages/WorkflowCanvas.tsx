@@ -19,7 +19,10 @@ import DraggableNodeType from "@/components/DraggableNodeType";
 import ProjectManager from "@/components/ProjectManager";
 import FloatingPanel from "@/components/FloatingPanel";
 import ResizablePanel from "@/components/ResizablePanel";
-import type { ActivityNode, Department, NodeType, ProjectStage, WorkflowProject, WorkflowRelationship, NodeStatus } from "@/types/workflow";
+import DepartmentManager from "@/components/DepartmentManager";
+import StageManager from "@/components/StageManager";
+import type { ActivityNode, NodeType, WorkflowProject, WorkflowRelationship, NodeStatus, WorkspaceConfig } from "@/types/workflow";
+import { loadWorkspaceConfig, saveWorkspaceConfig } from "@/lib/workspaceConfig";
 import { updateWorkflowStatus, completeNode, startNode, calculateWorkflowProgress, checkPrerequisites, wouldCreateCycle } from "@/lib/workflowEngine";
 import { saveProject, loadCurrentProject, createNewProject, autoSaveProject, getProjectsList } from "@/lib/workflowStorage";
 import { toast } from "sonner";
@@ -210,8 +213,14 @@ export default function WorkflowCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNodeType, setSelectedNodeType] = useState<NodeType>("ACTION");
-  const [selectedDepartment, setSelectedDepartment] = useState<Department>("SW_TEAM");
-  const [selectedStage, setSelectedStage] = useState<ProjectStage>("DEVELOPMENT");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(() => {
+    const config = loadWorkspaceConfig();
+    return config.departments.length > 0 ? config.departments[0].id : "PRODUCT_TEAM";
+  });
+  const [selectedStage, setSelectedStage] = useState<string>(() => {
+    const config = loadWorkspaceConfig();
+    return config.stages.length > 0 ? config.stages[0].id : "PLANNING";
+  });
   const [selectedNode, setSelectedNode] = useState<ActivityNode | null>(null);
   const [viewMode, setViewMode] = useState<"canvas" | "matrix">("canvas");
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -224,10 +233,24 @@ export default function WorkflowCanvas() {
     loadPanelPreferences()
   );
 
+  // Workspace configuration state (for dynamic departments/stages)
+  const [workspaceConfig, setWorkspaceConfig] = useState<WorkspaceConfig>(() =>
+    loadWorkspaceConfig()
+  );
+
+  // Dialog open states for managers
+  const [isDepartmentManagerOpen, setIsDepartmentManagerOpen] = useState(false);
+  const [isStageManagerOpen, setIsStageManagerOpen] = useState(false);
+
   // Auto-save panel preferences
   useEffect(() => {
     savePanelPreferences(panelPrefs);
   }, [panelPrefs]);
+
+  // Auto-save workspace configuration
+  useEffect(() => {
+    saveWorkspaceConfig(workspaceConfig);
+  }, [workspaceConfig]);
 
   // Panel toggle functions
   const toggleLeftPanelCollapse = useCallback(() => {
@@ -1177,11 +1200,36 @@ export default function WorkflowCanvas() {
       {/* Main Content Area */}
       <div
         ref={reactFlowWrapper}
-        className="flex-1 grid-background"
+        className="flex-1 grid-background flex flex-col"
         onDrop={onDrop}
         onDragOver={onDragOver}
         data-testid="workflow-canvas"
       >
+        {/* Matrix View Controls */}
+        {viewMode === "matrix" && (
+          <div className="p-4 flex gap-2 border-b border-border bg-card/50">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDepartmentManagerOpen(true)}
+              className="gap-2"
+            >
+              <Users className="w-4 h-4" />
+              부서 관리
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsStageManagerOpen(true)}
+              className="gap-2"
+            >
+              <Layers className="w-4 h-4" />
+              단계 관리
+            </Button>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-auto">
         {viewMode === "canvas" ? (
           <ReactFlow
             nodes={nodesWithHandlers}
@@ -1223,12 +1271,31 @@ export default function WorkflowCanvas() {
           />
           </ReactFlow>
         ) : (
-          <MatrixView 
+          <MatrixView
             nodes={nodes.map(n => n.data)}
+            departments={workspaceConfig.departments}
+            stages={workspaceConfig.stages}
             onNodeClick={(node) => setSelectedNode(node)}
           />
         )}
+        </div>
       </div>
+
+      {/* Workspace Configuration Managers */}
+      <DepartmentManager
+        open={isDepartmentManagerOpen}
+        onOpenChange={setIsDepartmentManagerOpen}
+        config={workspaceConfig}
+        onConfigChange={setWorkspaceConfig}
+        nodes={nodes.map(n => n.data)}
+      />
+      <StageManager
+        open={isStageManagerOpen}
+        onOpenChange={setIsStageManagerOpen}
+        config={workspaceConfig}
+        onConfigChange={setWorkspaceConfig}
+        nodes={nodes.map(n => n.data)}
+      />
     </div>
   );
 }
