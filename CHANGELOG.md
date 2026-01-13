@@ -19,6 +19,54 @@ FlowMatrix 프로젝트의 모든 주요 변경사항이 이 파일에 기록됩
 
 ---
 
+## [0.4.0] - 2026-01-13
+
+### Added
+- **Dynamic Department/Stage Management** (Phase 1 - Workspace Configuration)
+  - 부서와 단계를 동적으로 추가/삭제/수정할 수 있는 기능
+  - DepartmentManager 컴포넌트: Dialog 기반 부서 관리 UI
+  - StageManager 컴포넌트: Dialog 기반 단계 관리 UI
+  - 새로운 라이브러리 workspaceConfig.ts:
+    * loadWorkspaceConfig() / saveWorkspaceConfig() 함수
+    * addDepartment() / deleteDepartment() / updateDepartment() / reorderDepartments()
+    * addStage() / deleteStage() / updateStage() / reorderStages()
+    * canDeleteDepartment() / canDeleteStage() 검증 함수
+    * resetToDefaults() 초기화 함수
+  - LocalStorage 자동 저장 (키: "flowmatrix_workspace_config")
+  - 부서/단계 드래그로 순서 변경 기능
+  - 노드가 사용 중인 부서/단계 삭제 시 경고 및 차단
+
+### Changed
+- **타입 시스템 개선**:
+  - Department: Union type → string 타입 (동적 확장성 확보)
+  - ProjectStage: Union type → string 타입
+  - 새로운 타입 추가:
+    * DepartmentConfig: { id, label, order }
+    * StageConfig: { id, label, order }
+    * WorkspaceConfig: { id, departments[], stages[] }
+- **MatrixView 개선**:
+  - 하드코딩된 부서/단계 제거
+  - departments, stages를 props로 받음 (동적 그리드)
+  - 동적 그리드 열 계산 (단계 수에 따라)
+  - 최대 10개 부서 × 7개 단계 지원 (실용적 한계)
+- **WorkflowCanvas 업데이트**:
+  - workspaceConfig 상태 추가 (LocalStorage 기반 초기화)
+  - MatrixView에 departments, stages props 전달
+  - Matrix 뷰 상단에 "부서 관리", "단계 관리" 버튼 추가
+  - selectedDepartment, selectedStage를 동적으로 로드
+
+### Features
+✓ 사용자가 무한정으로 부서/단계 추가 가능
+✓ 부서/단계명 수정 가능
+✓ 부서/단계 드래그로 순서 변경 가능
+✓ 노드가 있는 부서/단계는 삭제 불가 (Toast 경고)
+✓ 모든 변경사항 LocalStorage에 자동 저장
+✓ 기본값: 6개 부서 (제품, 디자인, SW, HW, QA, 마케팅) + 5개 단계 (기획, 개발, 테스트, 배포, 유지보수)
+✓ Dialog 기반 사용자 친화적 UI
+✓ 모든 작업에 대한 Toast 피드백
+
+---
+
 ## [0.3.3] - 2026-01-13
 
 ### Added
