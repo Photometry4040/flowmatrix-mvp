@@ -19,6 +19,39 @@ FlowMatrix 프로젝트의 모든 주요 변경사항이 이 파일에 기록됩
 
 ---
 
+## [0.5.0] - 2026-01-13
+
+### Added
+- **MatrixView Drag-and-Drop** (Phase 2 - Node Repositioning)
+  - 노드를 셀 간 드래그하여 부서/단계 변경 기능
+  - DraggableMatrixNode 컴포넌트: @dnd-kit/core 기반 드래그 가능 노드
+  - MatrixCell 컴포넌트: @dnd-kit/core 기반 드롭 가능 셀
+  - DndContext를 MatrixView에 통합하여 전체 그리드 드래그 가능
+  - handleNodeMove 핸들러: 노드 위치 변경 시 상태 업데이트
+  - 드래그 중 시각적 피드백:
+    * 노드: opacity 50%, scale 95%
+    * 셀: 보더 색상 변경, scale 102% 증가
+  - Toast 알림: "노드명"을(를) 이동했습니다 (부서명 · 단계명)
+
+### Changed
+- **MatrixView 구조 개선**:
+  - 기존 정적 렌더링 → DndContext 기반 동적 드래그앤드롭
+  - 셀 렌더링: div → MatrixCell 컴포넌트
+  - 노드 렌더링: Card → DraggableMatrixNode 컴포넌트
+  - onNodeMove 콜백 props 추가
+  - 같은 셀 드롭 감지 및 무시
+  - 부서/단계 자동 정렬 (order field 기준)
+
+### Features
+✓ MatrixView에서 노드를 다른 셀로 드래그 가능
+✓ 드롭 시 자동으로 department, stage 업데이트
+✓ 선택된 노드 상태 동기화 (detail panel)
+✓ 시각적 피드백: 드래그 중 노드 흐릿해짐, 셀 하이라이트
+✓ Toast 알림으로 사용자 확인
+✓ Canvas/Matrix 뷰 전환 시 속성 유지
+
+---
+
 ## [0.4.0] - 2026-01-13
 
 ### Added
