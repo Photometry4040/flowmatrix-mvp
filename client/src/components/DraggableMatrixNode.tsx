@@ -21,7 +21,6 @@ export default function DraggableMatrixNode({
     data: {
       type: "node",
       nodeId: node.id,
-      nodeData: node,
     },
   });
 
