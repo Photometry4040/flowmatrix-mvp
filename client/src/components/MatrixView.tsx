@@ -42,9 +42,9 @@ export default function MatrixView({
 
     console.log("🔍 [Drag End]", {
       activeId: active?.id,
-      activeType: active?.data?.type,
+      activeData: active?.data,
       overId: over?.id,
-      overType: over?.data?.type,
+      overData: over?.data,
     });
 
     // 드래그 대상이 노드이고 드롭 대상이 셀인 경우
@@ -74,7 +74,11 @@ export default function MatrixView({
         onNodeMove(nodeId, newDept, newStage);
       }
     } else {
-      console.log("❌ [Invalid Drop - not node to cell]");
+      console.log("❌ [Invalid Drop]", {
+        reason: "not node to cell",
+        activeType: active?.data?.type,
+        overType: over?.data?.type,
+      });
     }
   };
 

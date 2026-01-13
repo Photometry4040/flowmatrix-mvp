@@ -16,7 +16,7 @@ export default function DraggableMatrixNode({
   node,
   onNodeClick,
 }: DraggableMatrixNodeProps) {
-  const { attributes, listeners, setNodeRef, isDragging, setActivationButtonElement } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `node-${node.id}`,
     data: {
       type: "node",
@@ -31,13 +31,14 @@ export default function DraggableMatrixNode({
   return (
     <div
       ref={setNodeRef}
+      {...listeners}
       {...attributes}
       onClick={(e) => {
         e.stopPropagation();
         onNodeClick(node);
       }}
       className={`
-        p-3 transition-all border-2 rounded-sm bg-card
+        p-3 transition-all border-2 rounded-sm bg-card cursor-grab active:cursor-grabbing
         ${
           isBottleneck
             ? "border-destructive bg-destructive/10"
@@ -49,11 +50,9 @@ export default function DraggableMatrixNode({
       data-testid={`draggable-matrix-node-${node.id}`}
     >
       <div className="space-y-2">
-        {/* Drag Handle */}
+        {/* Node Header */}
         <div
-          ref={setActivationButtonElement}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing flex items-start justify-between gap-2 pb-2 border-b border-border/50"
+          className="flex items-start justify-between gap-2 pb-2 border-b border-border/50"
         >
           <h4 className="text-sm font-semibold text-foreground leading-tight flex-1">
             {node.label}
@@ -65,7 +64,7 @@ export default function DraggableMatrixNode({
             <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
           )}
         </div>
-        {/* End Drag Handle */}
+        {/* End Node Header */}
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="w-3 h-3" />
