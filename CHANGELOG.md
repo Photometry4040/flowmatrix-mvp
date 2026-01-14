@@ -11,12 +11,43 @@ FlowMatrix 프로젝트의 모든 주요 변경사항이 이 파일에 기록됩
 ## [Unreleased]
 
 ### 계획된 기능
-- Phase 3: 엣지 삭제 UI 개선 (우클릭 메뉴, X 버튼)
 - 리드타임 자동 계산기
 - 워크플로우 템플릿 라이브러리
 - 엑셀 내보내기 기능
 - 실시간 협업 (WebSocket)
 - 버전 히스토리 및 롤백
+
+---
+
+## [0.6.0] - 2026-01-14
+
+### Added
+- **Edge Deletion UI Improvements** (Phase 3 - Connection Management)
+  - 세 가지 엣지 삭제 방법:
+    * Delete 키: 선택된 엣지 + Delete 키
+    * 우클릭: 엣지 우클릭 → 즉시 삭제
+    * X 버튼: 호버 시 나타나는 X 버튼 클릭
+  - CustomEdge 컴포넌트: @xyflow/react BaseEdge 확장
+    * EdgeLabelRenderer로 X 버튼 렌더링
+    * useReactFlow() 훅으로 자체 삭제 처리
+    * 선택/호버 시 버튼 가시성 토글
+  - onEdgeContextMenu 핸들러: 우클릭 즉시 삭제
+  - handleEdgesDelete 개선: 실제 엣지 삭제 + Toast 피드백
+
+### Changed
+- **WorkflowCanvas.tsx**:
+  - CustomEdge import 추가
+  - edgeTypes 설정 (custom: CustomEdge)
+  - ReactFlow defaultEdgeOptions에 type: "custom" 추가
+  - onEdgeContextMenu 핸들러 통합
+  - handleEdgesDelete 구현 완료 (console.log만 하던 것 → 실제 삭제)
+
+### Features
+✓ 삭제 키로 엣지 제거
+✓ 우클릭으로 엣지 즉시 삭제
+✓ 호버 X 버튼으로 직관적인 삭제 UI
+✓ 모든 삭제 방법에 Toast 알림
+✓ 선택된 엣지는 시각적으로 강조 (strokeWidth 3, 색상 변경)
 
 ---
 
