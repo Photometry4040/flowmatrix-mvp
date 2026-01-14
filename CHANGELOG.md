@@ -11,11 +11,35 @@ FlowMatrix 프로젝트의 모든 주요 변경사항이 이 파일에 기록됩
 ## [Unreleased]
 
 ### 계획된 기능
+- Phase 3: 엣지 삭제 UI 개선 (우클릭 메뉴, X 버튼)
 - 리드타임 자동 계산기
 - 워크플로우 템플릿 라이브러리
 - 엑셀 내보내기 기능
 - 실시간 협업 (WebSocket)
 - 버전 히스토리 및 롤백
+
+---
+
+## [0.5.1] - 2026-01-14
+
+### Fixed
+- **MatrixView 드래그앤드롭 버그 수정**:
+  - CSS Grid 문법 오류 (언더스코어 → 쉼표) 수정
+  - @dnd-kit 센서 명시적 설정 추가 (PointerSensor, distance: 8px)
+  - 드래그 핸들 구조 개선 (root div에 listeners 적용)
+  - 데이터 직렬화 문제 해결 (nodeData 제거, 필수 필드만 유지)
+  - @dnd-kit 중첩 데이터 구조 처리 (data.current 언래핑)
+
+### Changes
+- **DraggableMatrixNode.tsx**:
+  - Card 컴포넌트 → 순수 div로 변경 (이벤트 전파 안정성)
+  - 드래그 핸들 영역 최적화
+  - 시각적 피드백 개선
+
+### Result
+✅ MatrixView 드래그앤드롭 완전히 작동
+✅ 노드를 셀 간 이동하면 부서/단계 자동 변경
+✅ Canvas ↔ Matrix 뷰 전환 시 속성 유지
 
 ---
 
