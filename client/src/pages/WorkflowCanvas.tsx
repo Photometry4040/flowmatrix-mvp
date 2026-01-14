@@ -21,6 +21,7 @@ import FloatingPanel from "@/components/FloatingPanel";
 import ResizablePanel from "@/components/ResizablePanel";
 import DepartmentManager from "@/components/DepartmentManager";
 import StageManager from "@/components/StageManager";
+import CustomEdge from "@/components/CustomEdge";
 import type { ActivityNode, NodeType, WorkflowProject, WorkflowRelationship, NodeStatus, WorkspaceConfig } from "@/types/workflow";
 import { loadWorkspaceConfig, saveWorkspaceConfig } from "@/lib/workspaceConfig";
 import { updateWorkflowStatus, completeNode, startNode, calculateWorkflowProgress, checkPrerequisites, wouldCreateCycle } from "@/lib/workflowEngine";
@@ -66,6 +67,10 @@ import type { PanelPreferences } from "@/types/workflow";
 
 const nodeTypes = {
   workflow: WorkflowNode,
+};
+
+const edgeTypes = {
+  custom: CustomEdge,
 };
 
 // Sample initial nodes based on PRD example
@@ -492,9 +497,28 @@ export default function WorkflowCanvas() {
 
   // 엣지 삭제 핸들러
   const handleEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
+    if (edgesToDelete.length === 0) return;
+
     const edgeIds = edgesToDelete.map(e => e.id);
-    console.log(`❌ ${edgesToDelete.length}개 엣지 삭제: ${edgeIds.join(", ")}`);
-  }, []);
+    setEdges((eds) => eds.filter(e => !edgeIds.includes(e.id)));
+
+    // Toast 피드백
+    const count = edgesToDelete.length;
+    toast.success(`${count}개 엣지 삭제 완료`);
+    console.log(`✅ ${count}개 엣지 삭제: ${edgeIds.join(", ")}`);
+  }, [setEdges]);
+
+  // 엣지 우클릭 컨텍스트 메뉴 핸들러
+  const onEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      event.preventDefault();
+      // 우클릭 시 즉시 엣지 삭제
+      setEdges((eds) => eds.filter(e => e.id !== edge.id));
+      toast.success("엣지 삭제 완료");
+      console.log(`✅ 엣지 삭제 (우클릭): ${edge.id}`);
+    },
+    [setEdges]
+  );
 
   // Delete 키 핸들러
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -1280,12 +1304,15 @@ export default function WorkflowCanvas() {
             onNodeClick={onNodeClick}
             onNodesDelete={handleNodesDelete}
             onEdgesDelete={handleEdgesDelete}
+            onEdgeContextMenu={onEdgeContextMenu}
             onInit={setReactFlowInstance}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             deleteKeyCode="Delete"
             className="bg-transparent"
             defaultEdgeOptions={{
+              type: "custom",
               animated: true,
               style: { stroke: "oklch(0.65 0.25 230)", strokeWidth: 2 },
             }}
