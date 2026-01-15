@@ -804,6 +804,24 @@ pnpm preview
 
 ---
 
+## 📋 Phase 8 Backend 계획
+
+FlowMatrix는 Phase 8에서 본격적인 백엔드 통합을 진행합니다.
+
+### 주요 구현 내용 (4-5주 예상)
+- **Backend API Server** (T8.1-T8.6): Express.js + PostgreSQL + Prisma
+- **Authentication System** (T8.2): JWT + bcrypt
+- **Frontend API Client** (T8.7-T8.8): Axios 기반 API 레이어
+- **Data Migration** (T8.9): LocalStorage → PostgreSQL 자동 이관
+- **Real-time Collaboration** (T8.10): WebSocket (Socket.io)
+- **Testing & Optimization** (T8.11-T8.14): Unit + E2E + Performance
+
+### 문서
+- **계획서**: `.claude/plans/phase8-backend-implementation.md` (15 tasks, 의존성 그래프)
+- **DB 설계**: `DATABASE_DESIGN.md` (13 tables, ERD, 마이그레이션 전략)
+
+---
+
 ## 📞 문의
 
 프로젝트 관련 문의사항은 이슈를 등록해주세요.
