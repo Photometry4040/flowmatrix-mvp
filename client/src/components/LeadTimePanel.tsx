@@ -1,11 +1,13 @@
 /**
- * Lead Time Analysis Panel
+ * Lead Time Analysis Panel (Redesigned)
+ * Compact panel with tabbed interface for better usability and visual hierarchy
  * Displays total workflow lead time, critical path, and stage/department breakdowns
  */
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   calculateWorkflowLeadTime,
   formatLeadTime,
@@ -18,6 +20,8 @@ import {
   Zap,
   AlertTriangle,
   Download,
+  Layers,
+  Building2,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -37,9 +41,8 @@ export default function LeadTimePanel({
   onHighlightCriticalPath,
   onClearHighlight,
 }: LeadTimePanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [showStageBreakdown, setShowStageBreakdown] = useState(false);
-  const [showDepartmentBreakdown, setShowDepartmentBreakdown] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isLeadTimeExpanded, setIsLeadTimeExpanded] = useState(false);
 
   const leadTimeResult: LeadTimeResult = useMemo(
     () => calculateWorkflowLeadTime(nodes, edges),
@@ -169,29 +172,67 @@ export default function LeadTimePanel({
     return null;
   }
 
-  return (
-    <Card className="brutal-card w-full space-y-3 p-4 bg-card/80">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-        >
-          {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-primary" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-primary" />
-          )}
-          <Clock className="w-5 h-5 text-primary" />
-          <span className="font-bold text-foreground">리드타임 분석</span>
-        </button>
+  const stageBreakdownEntries = Object.entries(leadTimeResult.stageBreakdown).sort(
+    (a, b) => b[1] - a[1]
+  );
+  const departmentBreakdownEntries = Object.entries(leadTimeResult.departmentBreakdown).sort(
+    (a, b) => b[1] - a[1]
+  );
 
-        <div className="flex items-center gap-2">
+  return (
+    <Card className="brutal-card w-full bg-card/80 flex flex-col">
+      {/* Collapsible Header */}
+      <div
+        className="p-3 flex items-center justify-between border-b border-primary/20 cursor-pointer hover:bg-primary/5 transition-colors"
+        onClick={() => setIsLeadTimeExpanded(!isLeadTimeExpanded)}
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {/* Chevron Icon */}
+          <div className="flex-shrink-0">
+            {isLeadTimeExpanded ? (
+              <ChevronUp className="w-5 h-5 text-primary" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-primary" />
+            )}
+          </div>
+
+          <Clock className="w-5 h-5 text-primary flex-shrink-0" />
+
+          {/* Header Content */}
+          {isLeadTimeExpanded ? (
+            // Expanded view
+            <div className="flex-1">
+              <div className="text-xs font-bold text-muted-foreground">총 리드타임</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-mono font-bold text-primary">
+                  {leadTimeResult.formatted}
+                </span>
+                <span className="text-xs text-muted-foreground font-mono">
+                  ({leadTimeResult.totalHours}h / {leadTimeResult.totalDays}d)
+                </span>
+              </div>
+            </div>
+          ) : (
+            // Collapsed view - single line
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-xs font-bold text-muted-foreground">총 리드타임:</span>
+              <span className="text-sm font-mono font-bold text-primary whitespace-nowrap">
+                {leadTimeResult.formatted}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
-            onClick={exportAsCSV}
-            className="gap-1 h-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              exportAsCSV();
+            }}
+            className="gap-1 h-8 px-2"
             title="Export as CSV"
           >
             <Download className="w-4 h-4" />
@@ -199,181 +240,171 @@ export default function LeadTimePanel({
         </div>
       </div>
 
-      {isExpanded && (
-        <>
-          <Separator />
+      {/* Expanded Details Section */}
+      {isLeadTimeExpanded && (
+        <div className="flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col p-3">
+          <TabsList className="w-fit h-8 bg-secondary/40 p-1">
+            <TabsTrigger value="overview" className="text-xs h-6 gap-1">
+              <Zap className="w-3.5 h-3.5" />
+              크리티컬
+            </TabsTrigger>
+            <TabsTrigger value="stages" className="text-xs h-6 gap-1">
+              <Layers className="w-3.5 h-3.5" />
+              단계
+            </TabsTrigger>
+            <TabsTrigger value="departments" className="text-xs h-6 gap-1">
+              <Building2 className="w-3.5 h-3.5" />
+              부서
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Total Lead Time */}
-          <div className="space-y-2">
-            <div className="text-sm font-bold text-muted-foreground">총 리드타임</div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-mono font-bold text-primary">
-                {leadTimeResult.formatted}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                ({leadTimeResult.totalHours}h / {leadTimeResult.totalDays}d)
-              </span>
-            </div>
-          </div>
-
-          {/* Critical Path */}
+          {/* Critical Path Tab */}
           {leadTimeResult.criticalPath.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-2">
-                <div className="text-sm font-bold text-muted-foreground flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-yellow-400" />
-                  크리티컬 패스
-                  <span className="text-xs font-mono">({leadTimeResult.criticalPath.length} nodes)</span>
+            <TabsContent value="overview" className="flex-1 space-y-2.5 mt-2.5 min-h-0">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                  <span className="px-1.5 py-0.5 bg-yellow-400/20 text-yellow-400 rounded text-xs font-mono">
+                    {leadTimeResult.criticalPath.length}
+                  </span>
+                  크리티컬 패스 노드
                 </div>
+              </div>
 
-                <div className="space-y-1.5 max-h-40 overflow-y-auto bg-secondary/30 p-2 rounded-sm border border-border">
-                  {leadTimeResult.criticalPathNodes.map((node, index) => (
+              {/* Scrollable Critical Path List */}
+              <div className="flex-1 overflow-y-auto min-h-0 space-y-1 pr-2">
+                {leadTimeResult.criticalPathNodes.map((node, index) => {
+                  const percentage = (node.leadTime / leadTimeResult.totalMinutes) * 100;
+                  return (
                     <div
                       key={node.id}
-                      className="text-xs space-y-0.5 p-2 bg-secondary/50 rounded-sm border-l-2 border-yellow-400"
+                      className="p-2 bg-secondary/30 border border-yellow-400/30 rounded-sm space-y-1"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-foreground">
+                        <span className="text-xs font-bold text-foreground">
                           {index + 1}. {node.label}
                         </span>
-                        <span className="text-muted-foreground">
+                        <Badge variant="secondary" className="h-5 text-xs">
                           {formatLeadTime(node.leadTime)}
+                        </Badge>
+                      </div>
+                      <div className="w-full bg-secondary/50 rounded-full h-1">
+                        <div
+                          className="bg-yellow-400/80 h-1 rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground font-mono">{node.id}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-1.5 pt-2 border-t border-primary/10">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleHighlightCriticalPath}
+                  className="gap-1.5 h-7 flex-1 text-xs"
+                >
+                  <Zap className="w-3 h-3" />
+                  강조
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearHighlight}
+                  className="gap-1.5 h-7 flex-1 text-xs"
+                >
+                  해제
+                </Button>
+              </div>
+
+              {/* Bottleneck Warning */}
+              {leadTimeResult.criticalPath.length > 0 && (
+                <div className="flex gap-2 p-2 bg-destructive/10 border border-destructive/30 rounded-sm">
+                  <AlertTriangle className="w-3.5 h-3.5 text-destructive flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-destructive/80 leading-tight">
+                    <p className="font-bold mb-0.5">병목 감지</p>
+                    <p className="text-xs">
+                      일부 작업이 전체 리드타임의 30% 이상을 차지합니다.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          )}
+
+          {/* Stage Breakdown Tab */}
+          <TabsContent value="stages" className="flex-1 space-y-2 mt-2.5 min-h-0">
+            {stageBreakdownEntries.length > 0 ? (
+              <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-2">
+                {stageBreakdownEntries.map(([stage, minutes]) => {
+                  const percentage = (minutes / leadTimeResult.totalMinutes) * 100;
+                  return (
+                    <div key={stage} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-foreground">{stage}</span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {formatLeadTime(minutes)}
                         </span>
                       </div>
-                      <div className="text-muted-foreground text-xs">{node.id}</div>
+                      <div className="w-full bg-secondary/50 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-primary to-accent h-2 rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground pl-1">
+                        {percentage.toFixed(1)}%
+                      </div>
                     </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleHighlightCriticalPath}
-                    className="gap-1.5 h-8 flex-1"
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    강조
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearHighlight}
-                    className="gap-1.5 h-8 flex-1"
-                  >
-                    해제
-                  </Button>
-                </div>
+                  );
+                })}
               </div>
-            </>
-          )}
-
-          {/* Stage Breakdown */}
-          <div className="space-y-2">
-            <button
-              onClick={() => setShowStageBreakdown(!showStageBreakdown)}
-              className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showStageBreakdown ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-              단계별 리드타임
-              <span className="text-xs font-mono">
-                ({Object.keys(leadTimeResult.stageBreakdown).length})
-              </span>
-            </button>
-
-            {showStageBreakdown && Object.entries(leadTimeResult.stageBreakdown).length > 0 && (
-              <div className="space-y-1 pl-4 border-l-2 border-primary/30">
-                {Object.entries(leadTimeResult.stageBreakdown)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([stage, minutes]) => {
-                    const percentage = (minutes / leadTimeResult.totalMinutes) * 100;
-                    return (
-                      <div key={stage} className="space-y-0.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-foreground">{stage}</span>
-                          <span className="font-mono text-muted-foreground">
-                            {formatLeadTime(minutes)}
-                          </span>
-                        </div>
-                        <div className="w-full bg-secondary/50 rounded-full h-1.5">
-                          <div
-                            className="bg-gradient-to-r from-primary to-accent h-1.5 rounded-full transition-all"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+            ) : (
+              <div className="flex items-center justify-center py-8 text-xs text-muted-foreground">
+                단계 데이터 없음
               </div>
             )}
-          </div>
+          </TabsContent>
 
-          {/* Department Breakdown */}
-          <div className="space-y-2">
-            <button
-              onClick={() => setShowDepartmentBreakdown(!showDepartmentBreakdown)}
-              className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showDepartmentBreakdown ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-              부서별 리드타임
-              <span className="text-xs font-mono">
-                ({Object.keys(leadTimeResult.departmentBreakdown).length})
-              </span>
-            </button>
-
-            {showDepartmentBreakdown && Object.entries(leadTimeResult.departmentBreakdown).length > 0 && (
-              <div className="space-y-1 pl-4 border-l-2 border-accent/30">
-                {Object.entries(leadTimeResult.departmentBreakdown)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([department, minutes]) => {
-                    const percentage = (minutes / leadTimeResult.totalMinutes) * 100;
-                    return (
-                      <div key={department} className="space-y-0.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-foreground">{department}</span>
-                          <span className="font-mono text-muted-foreground">
-                            {formatLeadTime(minutes)}
-                          </span>
-                        </div>
-                        <div className="w-full bg-secondary/50 rounded-full h-1.5">
-                          <div
-                            className="bg-gradient-to-r from-accent to-primary h-1.5 rounded-full transition-all"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
+          {/* Department Breakdown Tab */}
+          <TabsContent value="departments" className="flex-1 space-y-2 mt-2.5 min-h-0">
+            {departmentBreakdownEntries.length > 0 ? (
+              <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-2">
+                {departmentBreakdownEntries.map(([department, minutes]) => {
+                  const percentage = (minutes / leadTimeResult.totalMinutes) * 100;
+                  return (
+                    <div key={department} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-foreground">{department}</span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {formatLeadTime(minutes)}
+                        </span>
                       </div>
-                    );
-                  })}
+                      <div className="w-full bg-secondary/50 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-accent to-primary h-2 rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground pl-1">
+                        {percentage.toFixed(1)}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8 text-xs text-muted-foreground">
+                부서 데이터 없음
               </div>
             )}
-          </div>
-
-          {/* Bottleneck Warning */}
-          {leadTimeResult.criticalPath.length > 0 && (
-            <>
-              <Separator />
-              <div className="flex gap-2 p-2 bg-destructive/10 border border-destructive/30 rounded-sm">
-                <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-destructive/80">
-                  <p className="font-bold mb-1">병목 감지</p>
-                  <p>
-                    크리티컬 패스의 일부 작업이 전체 리드타임의 30% 이상을 차지합니다. 이들 작업의
-                    최적화를 우선적으로 고려하세요.
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-        </>
+          </TabsContent>
+        </Tabs>
+        </div>
       )}
     </Card>
   );
