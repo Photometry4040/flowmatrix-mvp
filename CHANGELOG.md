@@ -10,47 +10,142 @@ FlowMatrix 프로젝트의 모든 주요 변경사항이 이 파일에 기록됩
 
 ## [Unreleased]
 
-### Phase 8 계획 완료 (2026-01-15)
+### Phase 8 - AI + Ontology Backend (계획 수립 완료, 2026-01-15)
 
-#### 📋 Backend Implementation Planning
-- **Comprehensive Implementation Plan** (152 hours, 4-5 weeks)
-  - 15 major tasks (T8.1-T8.15) with dependency graph
-  - Express.js + PostgreSQL + Prisma ORM architecture
-  - 25+ REST API endpoints design
-  - JWT authentication strategy (bcrypt, 7d expiration)
-  - Multi-tenant organization isolation
-  - WebSocket infrastructure for real-time collaboration
-  - LocalStorage → PostgreSQL automatic migration tool
-  - Performance optimization strategy (indexes, query optimization)
-  - Comprehensive testing plan (90%+ backend, 85%+ frontend coverage)
+#### 🤖 AI + Ontology Knowledge Graph Platform
 
-#### 📄 Documentation
-- **Plan Document**: `.claude/plans/phase8-backend-implementation.md`
-  - Task breakdown with time estimates
-  - Dependency graph for parallel execution
-  - File changes summary (50+ new files, 10+ modifications)
-  - Verification plan (unit tests, E2E tests, manual QA)
-  - Risk mitigation strategies
-  - Phase 9 preview (refresh tokens, Redis caching, AI integration)
+**새로운 아키텍처로 재설계됨 (PostgreSQL → MariaDB + MongoDB)**
 
-- **Database Design Document**: `DATABASE_DESIGN.md`
-  - 13 PostgreSQL tables with complete schema definitions
-  - Entity Relationship Diagram (ERD) with Mermaid
-  - Index strategy (15+ indexes for performance)
-  - Migration strategy from LocalStorage
-  - Query optimization examples
-  - Backup and disaster recovery procedures
-  - Scalability considerations (partitioning, read replicas)
+**목표**: FlowMatrix를 단순 워크플로우 툴에서 **AI 기반 Ontology Knowledge Graph 플랫폼**으로 진화
 
-#### 🎯 Next Steps (Phase 8 Execution)
-- T8.1: Backend Server Foundation (Express.js + middleware)
-- T8.2: Authentication System (JWT + bcrypt)
-- T8.3-T8.6: REST API implementation (Projects, Nodes, Templates, Workspace)
-- T8.7-T8.8: Frontend API client layer + Canvas migration
-- T8.9: LocalStorage → PostgreSQL migration tool
-- T8.10: WebSocket server for real-time collaboration
-- T8.11-T8.14: Testing (Backend Unit + Frontend Unit + E2E + Performance)
-- T8.15: Documentation (API.md, DEPLOYMENT.md, Docker Compose)
+#### 🏗️ Three-Layer Architecture
+
+1. **Semantic Layer**: Ontology 정의, Type System, Semantic Search
+   - ObjectType (동적 생성, 상속 지원)
+   - PropertyType, LinkType, ActionType, InterfaceType
+   - OpenAI Embedding (768-dim vector, cosine similarity search)
+   - MongoDB Vector Search (의미론적 검색)
+
+2. **Kinetic Layer**: Pipeline 실행 및 Action 오케스트레이션
+   - Visual Pipeline Builder (DAG 생성)
+   - Action Executor (JavaScript/Python/HTTP)
+   - Bull Queue + Redis (작업 큐)
+   - Event Bus (실시간 상태 전파)
+
+3. **Dynamic Layer**: Runtime Object 관리 및 실시간 동기화
+   - Object Instance Management (동적 스키마)
+   - Complete Change History Tracking (Temporal Query 지원)
+   - Object Explorer (Graph Traversal)
+   - Real-time WebSocket Sync
+
+#### 💾 Database Design
+
+**MariaDB 10.11+** (구조화된 데이터):
+- users, organizations, projects (메타데이터)
+- project_members (RBAC: OWNER, EDITOR, VIEWER)
+- activity_logs (Audit Trail, 감사 로그)
+- sessions (JWT 토큰 추적)
+
+**MongoDB 7.0+** (유연한 스키마):
+- `ontology.objectTypes` - ObjectType 정의 (확장 가능)
+- `ontology.propertyTypes, linkTypes, actionTypes` - 타입 정의
+- `ontology.functions` - 실행 가능한 함수
+- `objects.instances` - 동적 객체 (Polymorphic)
+- `objects.changeHistory` - 완전한 변경 이력 추적
+- `pipelines.definitions` - 파이프라인 정의 (DAG)
+- `pipelines.executions` - 파이프라인 실행 기록
+
+#### 🤖 AI Integration
+
+- **OpenAI text-embedding-3-small**: 768-dim vector 생성 ($0.02/1M tokens)
+- **Semantic Search**: "마케팅과 비슷한 작업 찾기" (MongoDB Vector Search)
+- **Workflow Analysis**: GPT-4o-mini로 병목 감지 및 최적화 제안
+- **Auto-tagging**: 설명 → 자동 ontology_tags 생성
+
+#### 📡 API Architecture
+
+- **GraphQL** (Ontology 쿼리, Real-time Subscriptions)
+  - Query: objectTypes, findSimilarObjectTypes, objects, exploreGraph
+  - Mutation: createObjectType, createObject, createLink, executePipeline
+  - Subscription: objectUpdated, pipelineExecutionUpdate
+
+- **REST** (파일 작업, Batch 처리)
+  - POST /api/ai/generate-embedding
+  - POST /api/ai/semantic-search
+  - POST /api/ai/analyze-workflow
+  - POST /api/projects/:id/import/excel
+  - GET /api/projects/:id/export/excel
+
+#### 📋 Task Breakdown (10주, 240-320시간)
+
+**Week 1-2 (T8.1-T8.3): Infrastructure Setup**
+- T8.1: MariaDB + MongoDB + Redis Docker Compose (12h)
+- T8.2: Express.js + GraphQL/Apollo Server (16h)
+- T8.3: JWT Authentication System (16h)
+
+**Week 3-4 (T8.4-T8.6): Semantic Layer**
+- T8.4: Ontology Manager (ObjectType CRUD, Type Inheritance) (20h)
+- T8.5: OpenAI Integration (Embedding, Batch Generation) (12h)
+- T8.6: Semantic Search Engine (Vector Search, Caching) (16h)
+
+**Week 5-6 (T8.7-T8.9): Kinetic Layer**
+- T8.7: Pipeline Builder API (DAG Validation) (18h)
+- T8.8: Action Executor (Bull Queue, Sandbox Runtime) (20h)
+- T8.9: Event Bus & WebSocket (Socket.io, Real-time Broadcast) (14h)
+
+**Week 7-8 (T8.10-T8.12): Dynamic Layer**
+- T8.10: Object Instance Manager (CRUD, Polymorphic Query) (16h)
+- T8.11: Change History Tracker (Temporal Query, Rollback) (12h)
+- T8.12: Object Explorer (Graph Traversal, BFS/DFS) (14h)
+
+**Week 9 (T8.13-T8.14): Frontend Integration**
+- T8.13: Apollo Client + Axios Setup (16h)
+- T8.14: Canvas → Ontology Migration UI (18h)
+
+**Week 10 (T8.15-T8.17): Testing & Documentation**
+- T8.15: Backend Unit Tests (Jest, 90%+ coverage) (20h)
+- T8.16: E2E Tests (Playwright, 15+ scenarios) (16h)
+- T8.17: Documentation (API.md, ONTOLOGY_GUIDE.md, DEPLOYMENT.md) (12h)
+
+#### 📊 Key Features Comparison
+
+| Feature | Phase 7 | Phase 8 |
+|---------|---------|---------|
+| Node Types | 고정 4개 (TRIGGER, ACTION, DECISION, ARTIFACT) | 동적 무제한 (UI에서 생성) |
+| Properties | 고정된 attributes 구조 | ObjectType별 맞춤 속성 |
+| Tags | 단순 문자열 배열 | Semantic Vector + Ontology 태그 |
+| Search | 이름/설명 텍스트 검색 | AI Semantic Search (유사도 검색) |
+| Relationships | 4가지 고정 타입 | 동적 LinkType (무제한) |
+| Execution | 상태 추적만 | 완전한 Pipeline 실행 엔진 |
+| Change Tracking | 없음 | 완전한 Temporal Audit Log |
+| Type Inheritance | 없음 | ObjectType extends 지원 |
+| Actions | 정의 불가 | ActionType + Function으로 실행 가능 |
+
+#### 📚 Documentation
+
+- **Plan Document**: `.claude/plans/phase8-ontology-backend.md` (완전한 구현 설계)
+- **MariaDB Schema**: 테이블 정의, RBAC, Audit Trail
+- **MongoDB Schema**: 모든 Collection 정의, Index 전략
+- **API Reference**: GraphQL Schema, REST Endpoints
+- **Migration Tool**: LocalStorage → MongoDB 자동 이관
+
+#### 🎯 Success Criteria
+
+✅ 기존 Phase 7 기능 100% 호환
+✅ ObjectType 동적 생성 가능 (코드 변경 없음)
+✅ Semantic Search 정확도 > 80% (embedding 기반)
+✅ Pipeline 실행 성공률 > 99%
+✅ Real-time Sync latency < 100ms
+✅ API Response Time < 300ms (p95)
+✅ 90%+ 백엔드 테스트 커버리지
+
+#### 🚀 Next Phase Preview (Phase 9)
+
+- **AI Agent**: GPT-4 기반 워크플로우 자동 생성
+- **Advanced Reasoning**: Ontology Inference Engine
+- **Data Connection**: 외부 API/DB 통합 (Zapier-like)
+- **Mobile App**: React Native + GraphQL
+- **Advanced Analytics**: Workflow Pattern Mining
 
 ---
 
