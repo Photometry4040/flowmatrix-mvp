@@ -1,0 +1,489 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTH & USERS ====================
+
+model User {
+  id    String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email String  @unique
+  name  String
+  avatarUrl String?
+  bio   String?
+
+  // Authentication
+  passwordHash String
+
+  // Authorization
+  role UserRole @default(USER)
+
+  // Relations
+  organizations Organization[]
+  projects      Project[]
+  projectMembers ProjectMember[]
+  templatesCreated Template[] @relation("CreatedBy")
+  projectVersions ProjectVersion[] @relation("CreatedBy")
+  comments      Comment[]
+  activityLogs  ActivityLog[]
+
+  // Soft delete
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+// ==================== ORGANIZATIONS ====================
+
+model Organization {
+  id    String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name  String @unique
+  slug  String @unique
+
+  description String?
+  logoUrl     String?
+
+  // Multi-tenant configuration
+  settings Json @default("{\"departments\": [], \"stages\": [], \"themeColor\": \"#00D4FF\", \"maxProjects\": 100, \"maxMembers\": 50}")
+
+  // Relations
+  projects      Project[]
+  templates     Template[]
+  workspaceConfig WorkspaceConfig?
+
+  // Created by
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdById String @db.Uuid
+
+  // Soft delete
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([createdById])
+  @@index([deletedAt])
+  @@index([slug])
+  @@map("organizations")
+}
+
+// ==================== PROJECTS ====================
+
+model Project {
+  id    String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name  String
+  slug  String
+  description String?
+
+  status ProjectStatus @default(ACTIVE)
+
+  // Multi-tenant association
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String        @db.Uuid
+
+  // Denormalized counts (updated via triggers)
+  nodesCount Int @default(0)
+  edgesCount Int @default(0)
+
+  // Relations
+  nodes   Node[]
+  edges   Edge[]
+  members ProjectMember[]
+  versions ProjectVersion[]
+  activityLogs ActivityLog[]
+  leadTimeCache LeadTimeCache?
+
+  // Created by
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String? @db.Uuid
+
+  // Soft delete
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([createdById])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+// ==================== PROJECT ACCESS ====================
+
+model ProjectMember {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @db.Uuid
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+
+  role ProjectRole @default(VIEWER)
+
+  // Optional permissions override
+  permissions Json?
+
+  joinedAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+enum ProjectRole {
+  OWNER
+  EDITOR
+  VIEWER
+  COMMENTER
+}
+
+// ==================== NODES ====================
+
+model Node {
+  id    String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  label String
+
+  description String?
+  type        NodeType
+
+  // Canvas position
+  positionX Int
+  positionY Int
+
+  // Categorization
+  stage      String?  // Reference to org.settings.stages[].id
+  department String?  // Reference to org.settings.departments[].id
+
+  // Execution state
+  status       NodeStatus @default(PENDING)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  progress     Int @default(0) @db.SmallInt
+
+  // Node attributes
+  attributes Json @default("{\"tool\": [], \"avgTime\": \"2h\", \"isRepetitive\": false, \"brainUsage\": \"MEDIUM\", \"assignee\": null}")
+
+  // Ontology tags
+  ontologyTags String[] @default([])
+
+  // AI/Analysis results
+  aiScore         Int     @default(0) @db.SmallInt
+  isBottleneck    Boolean @default(false)
+  bottleneckSeverity BottleneckSeverity?
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @db.Uuid
+
+  edgesFrom Edge[] @relation("SourceNode")
+  edgesTo   Edge[] @relation("TargetNode")
+
+  comments Comment[]
+  aiAnalysisCache AIAnalysisCache?
+
+  // Soft delete
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([isBottleneck])
+  @@index([aiScore(sort: Desc)])
+  @@index([stage, department])
+  @@index([deletedAt])
+  @@map("nodes")
+}
+
+enum NodeType {
+  TRIGGER
+  ACTION
+  DECISION
+  ARTIFACT
+}
+
+enum NodeStatus {
+  PENDING
+  READY
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum BottleneckSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ==================== EDGES ====================
+
+model Edge {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @db.Uuid
+
+  source   Node   @relation("SourceNode", fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceId String @db.Uuid
+
+  target   Node   @relation("TargetNode", fields: [targetId], references: [id], onDelete: Cascade)
+  targetId String @db.Uuid
+
+  // Relationship type
+  relationType RelationType
+
+  // Edge properties
+  properties Json @default("{}")
+
+  // Audit
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([sourceId, targetId])
+  @@index([relationType])
+  @@map("edges")
+}
+
+enum RelationType {
+  REQUIRES
+  BLOCKS
+  FEEDBACK_TO
+}
+
+// ==================== TEMPLATES ====================
+
+model Template {
+  id    String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name  String
+  description String?
+
+  category TemplateCategory
+  tags     String[] @default([])
+
+  thumbnailUrl String?
+
+  // Template snapshots
+  nodes Json  // ActivityNode[]
+  edges Json  // WorkflowRelationship[]
+
+  // Analytics
+  usageCount Int @default(0)
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String        @db.Uuid
+
+  createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String? @db.Uuid
+
+  // Soft delete
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([usageCount(sort: Desc)])
+  @@index([deletedAt])
+  @@map("templates")
+}
+
+enum TemplateCategory {
+  SW_DEVELOPMENT
+  HW_DEVELOPMENT
+  MARKETING
+  DESIGN
+  CUSTOM
+}
+
+// ==================== VERSION HISTORY ====================
+
+model ProjectVersion {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @db.Uuid
+
+  versionNumber Int
+  comment       String?
+
+  // Complete snapshot
+  snapshot Json
+
+  createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String? @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, versionNumber])
+  @@index([projectId])
+  @@map("project_versions")
+}
+
+// ==================== COLLABORATION ====================
+
+model Comment {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Relations
+  node   Node   @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  nodeId String @db.Uuid
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @db.Uuid
+
+  author   User   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId   String? @db.Uuid
+
+  // Content
+  content String
+
+  // Resolution
+  resolved   Boolean  @default(false)
+  resolvedAt DateTime?
+  resolvedBy User?  @relation(fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedById String? @db.Uuid
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nodeId])
+  @@index([projectId])
+  @@index([resolved])
+  @@map("comments")
+}
+
+// ==================== CACHING ====================
+
+model AIAnalysisCache {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  node   Node   @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  nodeId String @unique @db.Uuid
+
+  // Results
+  score     Int
+  reasoning Json
+
+  // Caching
+  computedAt DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([expiresAt])
+  @@map("ai_analysis_cache")
+}
+
+model LeadTimeCache {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @unique @db.Uuid
+
+  // Results
+  result Json
+
+  // Caching
+  computedAt DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([expiresAt])
+  @@map("lead_time_cache")
+}
+
+// ==================== WORKSPACE CONFIG ====================
+
+model WorkspaceConfig {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String        @unique @db.Uuid
+
+  // Configuration
+  departments Json @default("[]")
+  stages      Json @default("[]")
+
+  // Audit
+  updatedBy   User?  @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedById String? @db.Uuid
+  updatedAt   DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("workspace_configs")
+}
+
+// ==================== AUDIT LOG ====================
+
+model ActivityLog {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @db.Uuid
+
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId String? @db.Uuid
+
+  // Action details
+  action     ActivityAction
+  entityType EntityType
+  entityId   String?  @db.Uuid
+
+  // Change details
+  details Json
+
+  // Network info
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([entityId])
+  @@index([createdAt(sort: Desc)])
+  @@map("activity_logs")
+}
+
+enum ActivityAction {
+  CREATE
+  UPDATE
+  DELETE
+  EXPORT
+  SHARE
+  RESTORE
+}
+
+enum EntityType {
+  NODE
+  EDGE
+  PROJECT
+  TEMPLATE
+  COMMENT
+}

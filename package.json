@@ -73,6 +73,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -93,6 +94,7 @@
     "@types/google.maps": "^3.58.1",
     "@types/node": "^24.7.0",
     "@types/react": "^19.2.1",
+    "@types/xlsx": "^0.0.36",
     "@types/react-dom": "^19.2.1",
     "@vitejs/plugin-react": "^5.0.4",
     "@vitest/browser": "^2.1.4",

@@ -17,15 +17,19 @@ import NodeDetailPanel from "@/components/NodeDetailPanel";
 import MatrixView from "@/components/MatrixView";
 import DraggableNodeType from "@/components/DraggableNodeType";
 import ProjectManager from "@/components/ProjectManager";
+import TemplateLibrary from "@/components/TemplateLibrary";
 import FloatingPanel from "@/components/FloatingPanel";
 import ResizablePanel from "@/components/ResizablePanel";
 import DepartmentManager from "@/components/DepartmentManager";
 import StageManager from "@/components/StageManager";
 import CustomEdge from "@/components/CustomEdge";
-import type { ActivityNode, NodeType, WorkflowProject, WorkflowRelationship, NodeStatus, WorkspaceConfig } from "@/types/workflow";
+import ExcelExportDialog from "@/components/ExcelExportDialog";
+import LeadTimePanel from "@/components/LeadTimePanel";
+import type { ActivityNode, NodeType, WorkflowProject, WorkflowRelationship, NodeStatus, WorkspaceConfig, WorkflowTemplate } from "@/types/workflow";
 import { loadWorkspaceConfig, saveWorkspaceConfig } from "@/lib/workspaceConfig";
 import { updateWorkflowStatus, completeNode, startNode, calculateWorkflowProgress, checkPrerequisites, wouldCreateCycle } from "@/lib/workflowEngine";
 import { saveProject, loadCurrentProject, createNewProject, autoSaveProject, getProjectsList } from "@/lib/workflowStorage";
+import { applyTemplateToProject } from "@/lib/templateStorage";
 import { toast } from "sonner";
 import {
   Background,
@@ -45,6 +49,7 @@ import {
   Brain,
   Clock,
   FileText,
+  FileSpreadsheet,
   GitBranch,
   Layers,
   Play,
@@ -246,6 +251,10 @@ export default function WorkflowCanvas() {
   // Dialog open states for managers
   const [isDepartmentManagerOpen, setIsDepartmentManagerOpen] = useState(false);
   const [isStageManagerOpen, setIsStageManagerOpen] = useState(false);
+  const [isExcelExportDialogOpen, setIsExcelExportDialogOpen] = useState(false);
+
+  // Lead Time Panel state
+  const [highlightedCriticalPath, setHighlightedCriticalPath] = useState<string[]>([]);
 
   // Auto-save panel preferences
   useEffect(() => {
@@ -472,6 +481,47 @@ export default function WorkflowCanvas() {
     setSelectedNode(node.data);
   }, []);
 
+  const handleTemplateLoad = useCallback((template: WorkflowTemplate) => {
+    // 템플릿 적용하여 새 노드/엣지 생성
+    const { nodes: templateNodes, edges: templateEdges } = applyTemplateToProject(template);
+
+    // 새 프로젝트 생성
+    const newProject = createNewProject(
+      template.name,
+      template.description || `${template.name}로 생성된 워크플로우`
+    );
+
+    // 템플릿 노드/엣지를 프로젝트에 적용
+    const updatedProject: WorkflowProject = {
+      ...newProject,
+      nodes: templateNodes,
+      edges: templateEdges,
+    };
+
+    saveProject(updatedProject);
+    setCurrentProject(updatedProject);
+
+    // React Flow에 반영
+    const restoredNodes = templateNodes.map((node) => ({
+      id: node.id,
+      type: "workflow" as const,
+      position: node.position,
+      data: node,
+    }));
+    setNodes(restoredNodes);
+
+    const restoredEdges = templateEdges.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      animated: true,
+      style: { stroke: "oklch(0.65 0.25 230)", strokeWidth: 2 },
+    }));
+    setEdges(restoredEdges);
+
+    toast.success(`"${template.name}" 템플릿을 적용했습니다.`);
+  }, [setNodes, setEdges]);
+
   const handleNodeUpdate = useCallback((updatedNode: ActivityNode) => {
     setNodes((nds) => 
       nds.map((n) => 
@@ -685,6 +735,7 @@ export default function WorkflowCanvas() {
     () =>
       nodes.map((node) => ({
         ...node,
+        className: highlightedCriticalPath.includes(node.id) ? "critical-path-node" : "",
         data: {
           ...node.data,
           onStartNode: handleStartNode,
@@ -694,7 +745,7 @@ export default function WorkflowCanvas() {
           onChangeStatus: handleChangeStatus,
         },
       })),
-    [nodes, handleStartNode, handleCompleteNode, handleDuplicateNode, handleDeleteNode, handleChangeStatus]
+    [nodes, highlightedCriticalPath, handleStartNode, handleCompleteNode, handleDuplicateNode, handleDeleteNode, handleChangeStatus]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -801,7 +852,7 @@ export default function WorkflowCanvas() {
 
           <ProjectManager onProjectLoad={(project) => {
             setCurrentProject(project);
-            
+
             // 프로젝트 노드와 엣지 복원
             const restoredNodes = project.nodes.map(node => ({
               id: node.id,
@@ -810,7 +861,7 @@ export default function WorkflowCanvas() {
               data: node
             }));
             setNodes(restoredNodes);
-            
+
             const restoredEdges = project.edges.map(edge => ({
               id: edge.id,
               source: edge.source,
@@ -820,12 +871,25 @@ export default function WorkflowCanvas() {
             }));
             setEdges(restoredEdges);
           }} />
+          <TemplateLibrary
+            onTemplateLoad={handleTemplateLoad}
+            currentProject={currentProject || undefined}
+          />
           <Button variant="outline" size="sm" className="gap-2">
             <Users className="w-4 h-4" />
             협업
           </Button>
-          <Button 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setIsExcelExportDialogOpen(true)}
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            엑셀 내보내기
+          </Button>
+          <Button
+            size="sm"
             className="gap-2"
             onClick={() => {
               if (currentProject) {
@@ -1269,6 +1333,22 @@ export default function WorkflowCanvas() {
         onDragOver={onDragOver}
         data-testid="workflow-canvas"
       >
+        {/* Lead Time Panel */}
+        <div className="px-4 pt-4 border-b border-border">
+          <LeadTimePanel
+            nodes={nodes.map(n => n.data)}
+            edges={edges.map(e => ({
+              id: e.id,
+              source: e.source,
+              target: e.target,
+              relation_type: "REQUIRES" as const,
+              properties: {}
+            }))}
+            onHighlightCriticalPath={setHighlightedCriticalPath}
+            onClearHighlight={() => setHighlightedCriticalPath([])}
+          />
+        </div>
+
         {/* Matrix View Controls */}
         {viewMode === "matrix" && (
           <div className="p-4 flex gap-2 border-b border-border bg-card/50">
@@ -1363,6 +1443,13 @@ export default function WorkflowCanvas() {
         config={workspaceConfig}
         onConfigChange={setWorkspaceConfig}
         nodes={nodes.map(n => n.data)}
+      />
+
+      {/* Excel Export Dialog */}
+      <ExcelExportDialog
+        isOpen={isExcelExportDialogOpen}
+        onOpenChange={setIsExcelExportDialogOpen}
+        project={currentProject}
       />
     </div>
   );

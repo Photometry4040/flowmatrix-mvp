@@ -105,3 +105,44 @@ export interface PanelPreferences {
   leftPanel: PanelState;
   rightPanel: PanelState;
 }
+
+// Template System Types
+export type TemplateCategory =
+  | "SW_DEVELOPMENT"
+  | "HW_DEVELOPMENT"
+  | "MARKETING"
+  | "DESIGN"
+  | "CUSTOM";
+
+export interface WorkflowTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  category: TemplateCategory;
+  tags: string[];
+  thumbnail?: string; // base64 encoded screenshot
+  nodes: ActivityNode[];
+  edges: WorkflowRelationship[];
+  createdAt: string;
+  updatedAt: string;
+  usageCount: number;
+}
+
+// Lead Time Analysis Types
+export interface CriticalPathNode {
+  id: string;
+  label: string;
+  leadTime: number;
+  position: number;
+}
+
+export interface LeadTimeResult {
+  totalMinutes: number;
+  totalHours: number;
+  totalDays: number;
+  formatted: string; // "5d 3h 20m"
+  criticalPath: string[]; // node IDs
+  criticalPathNodes: CriticalPathNode[];
+  stageBreakdown: Record<string, number>;
+  departmentBreakdown: Record<string, number>;
+}

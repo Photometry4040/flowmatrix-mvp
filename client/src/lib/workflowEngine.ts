@@ -338,3 +338,55 @@ export function validateDependencies(
     errors
   };
 }
+
+/**
+ * Lead time 기반 병목 감지
+ * 리드타임이 전체 크리티컬 패스의 30% 이상인 노드를 병목으로 표시
+ */
+export function detectBottlenecksByLeadTime(
+  nodes: ActivityNode[],
+  edges: WorkflowRelationship[],
+  criticalPath: string[],
+  totalLeadTime: number
+): ActivityNode[] {
+  if (criticalPath.length === 0 || totalLeadTime === 0) {
+    return nodes;
+  }
+
+  return nodes.map(node => {
+    const isOnCriticalPath = criticalPath.includes(node.id);
+
+    if (!isOnCriticalPath) {
+      return { ...node, isBottleneck: false };
+    }
+
+    // Parse node lead time
+    const avgTimeStr = node.attributes?.avg_time || "0m";
+    const match = avgTimeStr.match(/^(\d+(?:\.\d+)?)\s*([hdm])$/i);
+    if (!match) {
+      return { ...node, isBottleneck: false };
+    }
+
+    const value = parseFloat(match[1]);
+    const unit = match[2].toLowerCase();
+
+    let nodeLeadTimeMinutes = 0;
+    switch (unit) {
+      case 'h':
+        nodeLeadTimeMinutes = value * 60;
+        break;
+      case 'd':
+        nodeLeadTimeMinutes = value * 24 * 60;
+        break;
+      case 'm':
+        nodeLeadTimeMinutes = value;
+        break;
+    }
+
+    // 노드가 전체 리드타임의 30% 이상을 차지하면 병목
+    const percentage = (nodeLeadTimeMinutes / totalLeadTime) * 100;
+    const isBottleneck = percentage >= 30;
+
+    return { ...node, isBottleneck };
+  });
+}
